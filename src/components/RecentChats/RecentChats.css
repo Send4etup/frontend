@@ -1,0 +1,240 @@
+/* src/components/RecentChats/RecentChats.css */
+.recent-chats {
+    margin-top: 24px;
+}
+
+.recent-chats-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: #ffffff;
+    text-align: center;
+}
+
+.chats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: #111111;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.chat-item:hover {
+    background: #2a2a2a;
+    border-color: #43ff65;
+    transform: translateY(-1px);
+}
+
+.chat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #43ff65;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.chat-icon .icon {
+    width: 20px;
+    height: 20px;
+    color: #000000;
+}
+
+.chat-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-title-header {
+    flex-direction: column;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 12px;
+}
+
+.chat-title {
+    font-size: 15px;
+    font-weight: 500;
+    margin: 0;
+    color: #ffffff;
+    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.chat-subject {
+    font-size: 11px;
+    color: #ffffff;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-transform: lowercase;
+}
+
+.chat-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #888888;
+}
+
+.time-icon {
+    width: 12px;
+    height: 12px;
+}
+
+.chat-preview {
+    font-size: 13px;
+    color: #cccccc;
+    margin: 0;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.view-all-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 16px;
+    background: transparent;
+    border: 1px solid #43ff65;
+    color: #43ff65;
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.view-all-btn:hover {
+    background: rgba(67, 255, 101, 0.1);
+    transform: translateY(-1px);
+}
+
+.view-all-btn:active {
+    transform: translateY(0);
+}
+
+/* Эффект при ховере для кнопки */
+.view-all-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(67, 255, 101, 0.2),
+            transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.view-all-btn:hover::before {
+    left: 100%;
+}
+
+/* Пустое состояние */
+.recent-chats-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px 20px;
+    color: #888888;
+}
+
+.empty-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.recent-chats-empty p {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+    color: #cccccc;
+}
+
+.recent-chats-empty span {
+    font-size: 14px;
+    color: #888888;
+}
+
+/* Анимация появления новых элементов */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chat-item {
+    animation: slideInUp 0.3s ease forwards;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .chat-item {
+        padding: 12px;
+    }
+
+    .chat-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .chat-meta {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .chat-title {
+        font-size: 14px;
+    }
+
+    .chat-preview {
+        font-size: 12px;
+    }
+}
