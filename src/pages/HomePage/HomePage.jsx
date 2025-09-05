@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import ProgressBar from '../../components/ProgressBar/ProgressBar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
-import { getChatHistory, sendMessage } from '../../services/educationService';
+import { getChatHistory, createToolChat, sendMessage } from '../../services/educationService';
 import { pageTransition, itemAnimation } from '../../utils/animations';
 import './HomePage.css';
 import RecentChats from "../../components/RecentChats/RecentChats.jsx";
@@ -35,14 +35,20 @@ const HomePage = ({ user }) => {
         if (!inputValue.trim()) return;
 
         try {
-            // Создаем новый чат или используем существующий
-            const chatId = Date.now(); // Временное решение
-            await sendMessage(inputValue);
+            // Создаем новый чат с обычным сообщением
+            const chatId = Date.now();
+
+            // Отправляем сообщение на сервер
+            await sendMessage(inputValue, null, chatId);
+
             setInputValue('');
 
             // Переходим в чат
             navigate(`/chat/${chatId}`, {
-                state: { initialMessage: inputValue }
+                state: {
+                    initialMessage: inputValue,
+                    isRegularMessage: true
+                }
             });
         } catch (error) {
             console.error('Failed to send message:', error);
@@ -169,15 +175,37 @@ const HomePage = ({ user }) => {
     const handleQuickAction = async (action) => {
         const actionData = quickActions.find(qa => qa.action === action);
         if (actionData) {
-            const chatId = Date.now();
-            navigate(`/chat/${chatId}`, {
-                state: {
-                    initialMessage: actionData.description,
-                    actionType: action,
-                    toolTitle: actionData.label,
-                    isToolDescription: true
-                }
-            });
+            try {
+                // Создаем чат для инструмента через API
+                const response = await createToolChat(
+                    action,
+                    actionData.label,
+                    actionData.description
+                );
+
+                const chatId = response.chat_id || Date.now();
+
+                navigate(`/chat/${chatId}`, {
+                    state: {
+                        initialMessage: actionData.description,
+                        actionType: action,
+                        toolTitle: actionData.label,
+                        isToolDescription: true
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to create tool chat:', error);
+                // Fallback к локальному созданию чата
+                const chatId = Date.now();
+                navigate(`/chat/${chatId}`, {
+                    state: {
+                        initialMessage: actionData.description,
+                        actionType: action,
+                        toolTitle: actionData.label,
+                        isToolDescription: true
+                    }
+                });
+            }
         }
     };
 
@@ -198,9 +226,9 @@ const HomePage = ({ user }) => {
                     className="page-title"
                     variants={itemAnimation}
                 >
-
                     <h1>Чем я могу тебе сегодня помочь?</h1>
                 </motion.div>
+
                 <motion.div
                     className="welcome-section"
                     variants={itemAnimation}
@@ -210,14 +238,6 @@ const HomePage = ({ user }) => {
                     </p>
                     <p className="quote-author">Вельгельм Швебель</p>
                 </motion.div>
-
-                {/*<motion.div variants={itemAnimation}>*/}
-                {/*    <ProgressBar*/}
-                {/*        current={user?.current_points || 34}*/}
-                {/*        total={100}*/}
-                {/*        percentage={40}*/}
-                {/*    />*/}
-                {/*</motion.div>*/}
 
                 <motion.div
                     className="input-section"

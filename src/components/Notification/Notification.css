@@ -1,0 +1,183 @@
+/* components/Notification/Notification.css */
+
+.notifications-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.notification {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #1f1f1f;
+    border: 1px solid var(--notification-color);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 300px;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    pointer-events: all;
+    position: fixed;
+    z-index: 10000;
+}
+
+.notification-icon {
+    color: var(--notification-color);
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-message {
+    color: #ffffff;
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.notification-close {
+    background: transparent;
+    border: none;
+    color: #666666;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.notification-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Типы уведомлений */
+.notification-success {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: #10b981;
+}
+
+.notification-error {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #ef4444;
+}
+
+.notification-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: #f59e0b;
+}
+
+.notification-info {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+}
+
+/* Позиции */
+.notification-top-right {
+    top: 20px;
+    right: 20px;
+}
+
+.notification-top-left {
+    top: 20px;
+    left: 20px;
+}
+
+.notification-bottom-right {
+    bottom: 20px;
+    right: 20px;
+}
+
+.notification-bottom-left {
+    bottom: 20px;
+    left: 20px;
+}
+
+.notification-top-center {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.notification-bottom-center {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Стекинг уведомлений */
+.notifications-container .notification:nth-child(1) {
+    z-index: 10000;
+}
+
+.notifications-container .notification:nth-child(2) {
+    z-index: 9999;
+    transform: scale(0.98) translateY(-8px);
+    opacity: 0.9;
+}
+
+.notifications-container .notification:nth-child(3) {
+    z-index: 9998;
+    transform: scale(0.96) translateY(-16px);
+    opacity: 0.8;
+}
+
+.notifications-container .notification:nth-child(n+4) {
+    display: none;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .notification {
+        min-width: 280px;
+        max-width: calc(100vw - 40px);
+        padding: 12px;
+    }
+
+    .notification-top-right,
+    .notification-top-left,
+    .notification-bottom-right,
+    .notification-bottom-left {
+        left: 20px;
+        right: 20px;
+        max-width: none;
+    }
+
+    .notification-top-center,
+    .notification-bottom-center {
+        left: 20px;
+        right: 20px;
+        transform: none;
+        max-width: none;
+    }
+}
+
+/* Анимация прогресс-бара для автозакрытия */
+.notification::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--notification-color);
+    animation: notificationProgress var(--duration, 5000ms) linear forwards;
+    border-radius: 0 0 8px 8px;
+}
+
+@keyframes notificationProgress {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}

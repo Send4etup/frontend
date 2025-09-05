@@ -20,7 +20,7 @@ const ProfilePage = ({ user }) => {
     const [menuLoading, setMenuLoading] = useState(true);
     const [tariffLoading, setTariffLoading] = useState(true);
     const [profileData, setProfileData] = useState({
-        name: user?.name || 'Иванов Иван',
+        name: user?.name || 'None',
         class: '11-А класс',
         school: 'Стартуем',
         phone: '+7 (983) 231 23 21',

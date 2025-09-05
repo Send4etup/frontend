@@ -8,6 +8,117 @@
     overflow: hidden;
 }
 
+/* Стили модального окна для изображений */
+.image-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    cursor: pointer;
+}
+
+.image-modal-container {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    cursor: default;
+}
+
+.image-modal-close {
+    position: absolute;
+    top: -50px;
+    right: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+    z-index: 10001;
+}
+
+.image-modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.image-modal-content {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.image-modal-img {
+    max-width: 90vw;
+    max-height: 85vh;
+    width: auto;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.image-modal-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: #ffffff;
+    padding: 20px 16px 16px;
+    text-align: center;
+}
+
+.image-modal-name {
+    font-size: 14px;
+    font-weight: 500;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .image-modal-overlay {
+        padding: 10px;
+    }
+
+    .image-modal-close {
+        top: 10px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+        position: fixed;
+    }
+
+    .image-modal-img {
+        max-width: 95vw;
+        max-height: 80vh;
+    }
+
+    .image-modal-info {
+        padding: 12px 10px 10px;
+    }
+
+    .image-modal-name {
+        font-size: 12px;
+    }
+}
+
 /* Хедер чата */
 .chat-title-header {
     flex-direction: column;
@@ -121,6 +232,11 @@
     border-radius: 16px;
     word-wrap: break-word;
     line-height: 1.4;
+    max-width: 100%;
+    overflow-x: hidden;
+    word-break: break-word;
+    text-align: left;
+    /*min-width: ; !* Минимальная ширина для точек *!*/
 }
 
 .message.user .message-content {
@@ -295,6 +411,7 @@
     padding: 8px;
     border: 1px solid #333333;
     transition: border-color 0.2s ease;
+    position: relative;
 }
 
 .chat-input-wrapper:focus-within {
@@ -377,6 +494,11 @@
 
 .chat-input::placeholder {
     color: #666666;
+    transition: color 0.2s ease;
+}
+
+.chat-input:focus::placeholder {
+    color: #43ff65;
 }
 
 .chat-input:disabled {
@@ -427,4 +549,827 @@
     --user-message-text: #000000;
     --assistant-message-bg: #1f1f1f;
     --assistant-message-text: #ffffff;
+}
+
+/* Стили для форматированных сообщений GPT */
+.formatted-message {
+    line-height: 1.6;
+    color: inherit;
+    max-width: 100%;
+    overflow-x: hidden;
+    text-align: left;
+}
+
+.formatted-message .message-text {
+    margin-bottom: 12px;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    text-align: left;
+    margin: 8px 0;
+}
+
+.formatted-message .message-text:last-child {
+    margin-bottom: 0;
+}
+
+.formatted-message .message-text:first-child {
+    margin-top: 0;
+}
+
+.formatted-message .message-text:last-child {
+    margin-bottom: 0;
+}
+
+/* Стили для блоков кода с горизонтальной прокруткой */
+.code-block-container {
+    margin: 16px 0;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0d1117;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    max-width: 100%;
+}
+
+.code-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #161b22;
+    border-bottom: 1px solid #21262d;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.code-language {
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.copy-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #f0f6fc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.copy-button:hover {
+    background: #21262d;
+    border-color: #8b949e;
+}
+
+.copy-button:active {
+    transform: translateY(1px);
+}
+
+.code-block {
+    margin: 0;
+    padding: 16px;
+    background: #0d1117;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #f0f6fc;
+    text-align: left;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: pre;
+    max-width: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: #30363d #161b22;
+}
+
+.code-block::-webkit-scrollbar {
+    height: 8px;
+    background: #161b22;
+}
+
+.code-block::-webkit-scrollbar-track {
+    background: #161b22;
+    border-radius: 4px;
+}
+
+.code-block::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 4px;
+}
+
+.code-block::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+
+.code-block code {
+    white-space: pre;
+    word-wrap: normal;
+    word-break: normal;
+    display: block;
+    text-align: left;
+}
+
+/* Стили для inline кода с переносом */
+.inline-code {
+    background: #6e768166;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Fira Code', monospace;
+    font-size: 0.9em;
+    color: #f85149;
+    border: 1px solid #30363d;
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+
+/* Стили для заголовков */
+.message-header {
+    color: #43ff65;
+    font-weight: 600;
+    margin: 16px 0 8px 0;
+    border-bottom: 1px solid #333;
+    padding-bottom: 4px;
+    text-align: left;
+}
+
+.message-header:first-child {
+    margin-top: 0;
+}
+
+/* Размеры заголовков */
+.formatted-message h1 {
+    font-size: 1.4em;
+    text-align: left;
+}
+
+.formatted-message h2 {
+    font-size: 1.3em;
+    text-align: left;
+}
+
+.formatted-message h3 {
+    font-size: 1.2em;
+    text-align: left;
+}
+
+.formatted-message h4 {
+    font-size: 1.1em;
+    text-align: left;
+}
+
+/* Стили для списков */
+.list-item {
+    display: flex;
+    align-items: flex-start;
+    margin: 4px 0;
+    padding-left: 8px;
+    text-align: left;
+}
+
+.list-marker {
+    color: #43ff65;
+    font-weight: bold;
+    margin-right: 8px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.list-content {
+    flex: 1;
+    line-height: 1.4;
+    text-align: left;
+}
+
+/* Стили для жирного и курсивного текста */
+.formatted-message strong {
+    font-weight: 600;
+    color: inherit;
+}
+
+.formatted-message em {
+    font-style: italic;
+    color: #8b949e;
+}
+
+/* Обеспечиваем правильный перенос длинного текста */
+.formatted-message p,
+.message-text {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    max-width: 100%;
+    margin: 8px 0;
+    text-align: left;
+}
+
+.formatted-message p:first-child,
+.message-text:first-child {
+    margin-top: 0;
+}
+
+.formatted-message p:last-child,
+.message-text:last-child {
+    margin-bottom: 0;
+}
+
+/* Контейнер для прикрепленных файлов */
+.attached-files-container {
+    padding: 16px 20px 0;
+    background: #0a0a0a;
+    border-top: 1px solid #1f1f1f;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.attached-files-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Стили для прикрепленного файла */
+.attached-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1f1f1f;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 8px 12px;
+    max-width: 250px;
+    position: relative;
+    transition: all 0.2s ease;
+    animation: fileAppear 0.3s ease-out;
+}
+
+.attached-file:hover {
+    background: #2a2a2a;
+    border-color: #43ff65;
+}
+
+.attached-file .file-icon {
+    color: #43ff65;
+    flex-shrink: 0;
+}
+
+.attached-file .file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.attached-file .file-name {
+    font-size: 14px;
+    color: #ffffff;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.attached-file .file-size {
+    font-size: 12px;
+    color: #666666;
+}
+
+.remove-file-btn {
+    background: transparent;
+    border: none;
+    color: #666666;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.remove-file-btn:hover {
+    color: #ef4444;
+    background: #2a1f1f;
+}
+
+/* Стили для файлов в сообщениях */
+.message-files {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.message-file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.2s ease;
+    position: relative;
+    animation: fileAppear 0.4s ease-out;
+    background: #31b849;
+}
+
+.file-icon-large {
+    color: #43ff65;
+    flex-shrink: 0;
+}
+
+.file-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name-large {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+    word-break: break-all;
+}
+
+.file-size-large {
+    font-size: 12px;
+    color: #8b949e;
+    margin-bottom: 2px;
+}
+
+.file-type {
+    font-size: 11px;
+    color: #666666;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+/* Стили для изображений в сообщениях */
+.message-image {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+    max-width: 400px;
+    animation: fileAppear 0.4s ease-out;
+}
+
+.message-image:hover {
+    border-color: #43ff65;
+    transform: scale(1.02);
+}
+
+.message-image img {
+    width: 100%;
+    height: auto;
+    max-height: 300px;
+    object-fit: cover;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.message-image img:hover {
+    transform: scale(1.05);
+}
+
+.image-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: #ffffff;
+    padding: 16px 12px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.message-image:hover .image-info {
+    opacity: 1;
+}
+
+.image-info span:first-child {
+    font-weight: 500;
+    color: #ffffff;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.image-info span:last-child {
+    color: #8b949e;
+    flex-shrink: 0;
+}
+
+/* Кнопка анализа файлов */
+.analyze-file-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(67, 255, 101, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+    z-index: 10;
+}
+
+.message-image:hover .analyze-file-btn,
+.message-file:hover .analyze-file-btn {
+    opacity: 1;
+}
+
+.analyze-file-btn:hover {
+    background: rgba(67, 255, 101, 1);
+    transform: scale(1.1);
+}
+
+.analyze-file-btn:active {
+    transform: scale(0.95);
+}
+
+/* Для файлов (не изображений) позиционируем по-другому */
+.message-file .analyze-file-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+}
+
+/* Контейнер для ошибок файлов */
+.file-errors-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 350px;
+}
+
+.file-error-notification {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid #ef4444;
+    border-radius: 8px;
+    padding: 12px;
+    color: #ffffff;
+    font-size: 14px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.file-error-notification svg {
+    color: #ef4444;
+    flex-shrink: 0;
+}
+
+.error-close-btn {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    margin-left: auto;
+}
+
+.error-close-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* Анимации для файлов */
+@keyframes fileAppear {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Состояние загрузки файлов */
+.file-uploading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.file-uploading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #43ff65;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    transform: translateY(-50%);
+}
+
+@keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+}
+
+/* Состояние ошибки при загрузке файла */
+.file-error {
+    border-color: #ef4444;
+    background: #2a1f1f;
+}
+
+.file-error .file-icon {
+    color: #ef4444;
+}
+
+.file-error-message {
+    font-size: 11px;
+    color: #ef4444;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* Drag & Drop зона */
+.chat-input-wrapper.drag-over {
+    border-color: #43ff65;
+    background: rgba(67, 255, 101, 0.1);
+}
+
+.drag-drop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(67, 255, 101, 0.1);
+    border: 2px dashed #43ff65;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #43ff65;
+    font-weight: 600;
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Мобильная адаптивность */
+@media (max-width: 768px) {
+    .attached-files-container {
+        padding: 12px 16px 0;
+    }
+
+    .attached-file {
+        max-width: 200px;
+        padding: 6px 8px;
+    }
+
+    .attached-file .file-name {
+        font-size: 13px;
+    }
+
+    .attached-file .file-size {
+        font-size: 11px;
+    }
+
+    .message-image {
+        max-width: 100%;
+    }
+
+    .message-image img {
+        max-height: 200px;
+    }
+
+    .message-file {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .file-name-large {
+        font-size: 13px;
+    }
+
+    .file-size-large {
+        font-size: 11px;
+    }
+
+    .message-header {
+        font-size: 1em;
+        margin: 12px 0 6px 0;
+    }
+
+    .code-block {
+        font-size: 12px;
+        padding: 12px;
+    }
+
+    .code-block-header {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .copy-button {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+}
+
+.voice-btn.recording {
+    background-color: rgba(255, 0, 0, 0.1);
+    border: 2px solid red;
+    animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+}
+/* Стили для прикрепленных аудио файлов */
+.attached-audio-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1f1f1f;
+    border: 1px solid #333333;
+    border-radius: 12px;
+    padding: 12px;
+    max-width: 300px;
+    position: relative;
+    transition: all 0.2s ease;
+    animation: fileAppear 0.3s ease-out;
+}
+
+.attached-audio-file:hover {
+    background: #2a2a2a;
+    border-color: #43ff65;
+}
+
+.audio-player-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.audio-play-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: #43ff65;
+    border: none;
+    border-radius: 50%;
+    color: #000000;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.audio-play-btn:hover {
+    background: #3de558;
+    transform: scale(1.05);
+}
+
+.audio-player {
+    flex: 1;
+    height: 32px;
+    background: transparent;
+    border-radius: 16px;
+}
+
+/* Стили для аудио в сообщениях */
+.message-audio {
+    background: rgba(67, 255, 101, 0.1);
+    border: 1px solid rgba(67, 255, 101, 0.3);
+    border-radius: 16px;
+    padding: 16px;
+    max-width: 350px;
+    animation: fileAppear 0.4s ease-out;
+}
+
+.message-audio .audio-player-container {
+    gap: 12px;
+}
+
+.message-audio .audio-play-btn {
+    width: 40px;
+    height: 40px;
+}
+
+.message-audio .audio-player {
+    height: 40px;
+    border-radius: 20px;
+}
+
+/* Мобильная адаптивность */
+@media (max-width: 768px) {
+    .attached-audio-file {
+        max-width: 250px;
+        padding: 10px;
+    }
+
+    .audio-play-btn {
+        width: 28px;
+        height: 28px;
+    }
+
+    .audio-player {
+        height: 28px;
+    }
+
+    .message-audio {
+        max-width: 100%;
+        padding: 12px;
+    }
+
+    .message-audio .audio-play-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .message-audio .audio-player {
+        height: 36px;
+    }
+}
+
+/* Анимация для streaming сообщений */
+.message.assistant.streaming .message-content::after {
+    color: #43ff65;
+    animation: cursor-blink 1s infinite;
+    margin-left: 2px;
+}
+
+@keyframes cursor-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* Индикатор streaming */
+.streaming-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #43ff65;
+    margin-top: 4px;
+    opacity: 0.7;
+}
+
+.streaming-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.streaming-dots span {
+    width: 5px;
+    height: 5px;
+    background: #43ff65;
+    border-radius: 50%;
+    animation: streaming-pulse 1.4s infinite ease-in-out;
+}
+
+.streaming-dots span:nth-child(1) { animation-delay: 0s; }
+.streaming-dots span:nth-child(2) { animation-delay: 0.2s; }
+.streaming-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes streaming-pulse {
+    0%, 60%, 100% {
+        transform: scale(1);
+        opacity: 0.3;
+    }
+    30% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
 }

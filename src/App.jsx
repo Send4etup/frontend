@@ -1,24 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
-// Hooks
-import { useTelegramAuth } from './hooks/useTelegramAuth';
+// Services
+import { simpleAuth, getCurrentUser } from './services/authService';
 
 // Pages
 import HomePage from './pages/HomePage/HomePage';
 import SchoolPage from './pages/SchoolPage/SchoolPage';
 import EducationPage from './pages/EducationPage/EducationPage';
 import ProfilePage from './pages/ProfilePage/ProfilePage';
-import FriendsPage from './pages/FriendsPage/FriendsPage';
-import TeachersPage from './pages/TeachersPage/TeachersPage';
 import IdeasPage from './pages/IdeasPage/IdeasPage';
 
 // Education category pages
-import CoursesPage from './pages/CoursesPage/CoursesPage';
-import WorkshopsPage from './pages/WorkshopsPage/WorkshopsPage';
+// import CoursesPage from './pages/CoursesPage/CoursesPage';
+// import WorkshopsPage from './pages/WorkshopsPage/WorkshopsPage';
 import VideosPage from './pages/VideosPage/VideosPage';
-import LifehacksPage from './pages/LifehacksPage/LifehacksPage';
+// import LifehacksPage from './pages/LifehacksPage/LifehacksPage';
 
 // Components
 import Layout from './components/Layout/Layout';
@@ -46,21 +44,101 @@ const AuthError = ({ error, onRetry }) => (
     </div>
 );
 
-// Компонент загрузки с Telegram стилизацией
-const TelegramLoader = ({ platformInfo }) => (
-    <div className="telegram-loader">
+// Компонент загрузки
+const SimpleLoader = () => (
+    <div className="simple-loader">
         <LoadingSpinner fullScreen />
         <div className="loader-info">
             <p>Подключение к ТоварищБоту...</p>
-            {platformInfo && (
-                <small>
-                    Платформа: {platformInfo.platform} |
-                    Версия: {platformInfo.version}
-                </small>
-            )}
         </div>
     </div>
 );
+
+// Хук для простой авторизации
+const useSimpleAuth = () => {
+    const [user, setUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        initAuth();
+    }, []);
+
+    const initAuth = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+
+            // Проверяем есть ли пользователь в localStorage
+            const savedUser = getCurrentUser();
+            if (savedUser) {
+                setUser(savedUser);
+                setIsLoading(false);
+                return;
+            }
+
+            // Если нет - делаем простую авторизацию
+            const authData = await simpleAuth();
+            setUser(authData.user);
+
+        } catch (err) {
+            console.error('Auth error:', err);
+            setError(err.message || 'Ошибка авторизации');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const refreshUserData = async () => {
+        try {
+            const authData = await simpleAuth();
+            setUser(authData.user);
+        } catch (err) {
+            console.error('Refresh error:', err);
+        }
+    };
+
+    const updateUserPoints = (points) => {
+        if (user) {
+            const updatedUser = {
+                ...user,
+                current_points: (user.current_points || 0) + points,
+                total_points: (user.total_points || 0) + points
+            };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+    };
+
+    const trackUserActivity = (activity) => {
+        console.log('User activity:', activity);
+    };
+
+    const logout = () => {
+        setUser(null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+    };
+
+    const showNotification = (message) => {
+        // Простое уведомление через alert
+        // В будущем можно заменить на toast или другую систему уведомлений
+        alert(message);
+    };
+
+    return {
+        user,
+        isLoading,
+        error,
+        isAuthenticated: !!user,
+        refreshUserData,
+        updateUserPoints,
+        trackUserActivity,
+        logout,
+        showNotification,
+        retry: initAuth
+    };
+};
 
 function App() {
     const {
@@ -68,18 +146,17 @@ function App() {
         isLoading,
         error,
         isAuthenticated,
-        platformInfo,
         refreshUserData,
         updateUserPoints,
         trackUserActivity,
         logout,
         showNotification,
-        closeApp
-    } = useTelegramAuth();
+        retry
+    } = useSimpleAuth();
 
     // Показываем загрузку во время инициализации
     if (isLoading) {
-        return <TelegramLoader platformInfo={platformInfo} />;
+        return <SimpleLoader />;
     }
 
     // Показываем ошибку, если что-то пошло не так
@@ -87,20 +164,20 @@ function App() {
         return (
             <AuthError
                 error={error}
-                onRetry={() => window.location.reload()}
+                onRetry={retry}
             />
         );
     }
 
-    // Если пользователь не аутентифицирован
+    // Если пользователь не аутентифицирован (не должно происходить с простой авторизацией)
     if (!isAuthenticated || !user) {
         return (
             <div className="auth-required">
                 <div className="auth-required-content">
                     <h2>Требуется авторизация</h2>
-                    <p>Пожалуйста, запустите приложение через Telegram</p>
-                    <button onClick={closeApp} className="close-btn">
-                        Закрыть
+                    <p>Попробуем авторизоваться автоматически...</p>
+                    <button onClick={retry} className="retry-btn">
+                        Попробовать снова
                     </button>
                 </div>
             </div>
@@ -135,24 +212,15 @@ function App() {
                                 path="profile"
                                 element={<ProfilePage user={userWithMethods} />}
                             />
-                            <Route path="friends" element={<FriendsPage />} />
-                            <Route path="teachers" element={<TeachersPage />} />
                             <Route path="ideas" element={<IdeasPage />} />
 
                             {/* Страницы категорий образования */}
-                            <Route path="courses" element={<CoursesPage />} />
-                            <Route path="workshops" element={<WorkshopsPage />} />
+                            {/*<Route path="courses" element={<CoursesPage />} />*/}
+                            {/*<Route path="workshops" element={<WorkshopsPage />} />*/}
                             <Route path="videos" element={<VideosPage />} />
-                            <Route path="lifehacks" element={<LifehacksPage />} />
+                            {/*<Route path="lifehacks" element={<LifehacksPage />} />*/}
 
-                            {/* Детальные страницы (пока редиректы на категории) */}
-                            <Route path="course/:id" element={<Navigate to="/courses" replace />} />
-                            <Route path="workshop/:id" element={<Navigate to="/workshops" replace />} />
-                            <Route path="video/:id" element={<Navigate to="/videos" replace />} />
-                            <Route path="lifehack/:id" element={<Navigate to="/lifehacks" replace />} />
-                            <Route path="news" element={<Navigate to="/education" replace />} />
-
-                            {/* Существующие маршруты */}
+                            {/* Страницы чатов и тестов */}
                             <Route path="test/:testId" element={<TestPage />} />
                             <Route path="chat/:chatId" element={<AIChatPage />} />
 

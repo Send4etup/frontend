@@ -9,6 +9,7 @@ import {
 import ToolCard from '../../components/ToolCard/ToolCard';
 import { testsData } from '../../data/testData';
 import { pageTransition, itemAnimation } from '../../utils/animations';
+import { createToolChat } from '../../services/educationService';
 import './SchoolPage.css';
 
 const SchoolPage = () => {
@@ -249,18 +250,40 @@ const SchoolPage = () => {
         { id: 'история', name: 'История' }
     ];
 
-    const handleToolClick = (action) => {
+    const handleToolClick = async (action) => {
         const tool = tools.find(t => t.action === action);
         if (tool) {
-            const chatId = Date.now();
-            navigate(`/chat/${chatId}`, {
-                state: {
-                    initialMessage: tool.description,
-                    actionType: action,
-                    toolTitle: tool.title,
-                    isToolDescription: true
-                }
-            });
+            try {
+                // Создаем чат для инструмента через API
+                const response = await createToolChat(
+                    action,
+                    tool.title,
+                    tool.description
+                );
+
+                const chatId = response.chat_id || Date.now();
+
+                navigate(`/chat/${chatId}`, {
+                    state: {
+                        initialMessage: tool.description,
+                        actionType: action,
+                        toolTitle: tool.title,
+                        isToolDescription: true
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to create tool chat:', error);
+                // Fallback к локальному созданию чата
+                const chatId = Date.now();
+                navigate(`/chat/${chatId}`, {
+                    state: {
+                        initialMessage: tool.description,
+                        actionType: action,
+                        toolTitle: tool.title,
+                        isToolDescription: true
+                    }
+                });
+            }
         }
     };
 
