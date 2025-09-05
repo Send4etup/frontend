@@ -1055,7 +1055,6 @@ const ChatPage = () => {
 
                                     {message.isStreaming && (
                                         <div className="streaming-indicator">
-                                            <span>генерирую ответ  </span>
                                             <div className="streaming-dots">
                                                 <span></span>
                                                 <span></span>
