@@ -568,7 +568,8 @@
 
 .attachment-toggle-btn,
 .send-btn,
-.voice-btn {
+.voice-btn,
+.stop-generation-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -581,6 +582,11 @@
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
+}
+
+.send-btn svg, .attachment-toggle-btn svg, .voice-btn svg {
+    width: 16px;
+    height: 16px;
 }
 
 .attachment-toggle-btn:hover {

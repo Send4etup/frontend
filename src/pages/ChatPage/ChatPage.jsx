@@ -1345,7 +1345,7 @@ const ChatPage = () => {
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                         >
-                            ❌
+                            <X size={14} />
                         </motion.button>
                     ) : hasContent ? (
                         <motion.button
