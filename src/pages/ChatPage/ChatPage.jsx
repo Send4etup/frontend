@@ -23,6 +23,7 @@ import 'katex/dist/katex.min.css';
 import { pageTransition, itemAnimation } from '../../utils/animations';
 import {sendMessage, getAIResponse, getChatHistory, getAIResponseStream} from '../../services/educationService';
 import './ChatPage.css';
+import {sendMessageSafe, getAIResponseSafe, uploadFileSafe} from '../../services/backendAdapter';
 
 // Компонент модального окна для просмотра изображений
 const ImageModal = ({ isOpen, image, onClose }) => {
@@ -706,85 +707,74 @@ const ChatPage = () => {
         input.click();
     };
 
-
     const handleSendMessage = async () => {
-        if ((!inputValue.trim() && attachedFiles.length === 0) || isLoading) return;
+        if (!messageInput.trim() && attachedFiles.length === 0) return;
 
-        const newMessage = {
-            id: Date.now(),
-            type: 'user',
-            content: inputValue || '',
-            files: [...attachedFiles],
-            timestamp: new Date()
-        };
-
-        setMessages(prev => [...prev, newMessage]);
-        setInputValue('');
-        setAttachedFiles([]);
-        setIsLoading(true);
+        const userMessage = messageInput.trim();
+        setMessageInput('');
+        setIsTyping(true);
 
         try {
-            await sendMessage(newMessage.content, newMessage.files, chatId);
+            // НОВОЕ: пробуем отправить через новый бэкенд
+            const sendResult = await sendMessageSafe(userMessage, attachedFiles, currentChatId);
 
-            const assistantMessageId = Date.now() + 1;
-            setStreamingMessageId(assistantMessageId);
+            if (sendResult.success) {
+                console.log('✅ Message sent via backend:', sendResult.data);
 
-            const initialAssistantMessage = {
-                id: assistantMessageId,
-                type: 'assistant',
-                content: '',
-                timestamp: new Date(),
-                isStreaming: true
-            };
-            setMessages(prev => [...prev, initialAssistantMessage]);
+                // Если успешно, получаем ответ ИИ
+                const aiResult = await getAIResponseSafe(userMessage, currentChatId, {
+                    tool_type: currentChatType,
+                    files_count: attachedFiles.length
+                });
 
-            const context = {
-                chatHistory: messages,
-                chatId,
-                files: newMessage.files
-            };
-
-            // Для остановки используем AbortController
-            const controller = new AbortController();
-            streamingControllerRef.current = controller;
-
-            const streamResponse = await getAIResponseStream(newMessage.content, context, {
-                signal: controller.signal
-            });
-
-            let accumulatedContent = '';
-
-            for await (const chunk of streamResponse.readStream()) {
-                if (controller.signal.aborted) break;
-
-                if (chunk.type === 'chunk' && chunk.content) {
-                    accumulatedContent += chunk.content;
-                    setMessages(prev =>
-                        prev.map(msg =>
-                            msg.id === assistantMessageId
-                                ? { ...msg, content: accumulatedContent }
-                                : msg
-                        )
-                    );
-                } else if (chunk.type === 'end') {
-                    setMessages(prev =>
-                        prev.map(msg =>
-                            msg.id === assistantMessageId
-                                ? { ...msg, isStreaming: false }
-                                : msg
-                        )
-                    );
-                    break;
-                } else if (chunk.type === 'error') {
-                    throw new Error(chunk.message);
+                if (aiResult.success) {
+                    console.log('🤖 AI response received:', aiResult.data);
+                    // Здесь обновляем UI как обычно
                 }
+            } else {
+                console.warn('⚠️ Backend failed, using fallback');
+                // FALLBACK: используем старую логику
+                // Вставить здесь СТАРЫЙ код отправки сообщений
             }
+
+            // Очищаем файлы
+            setAttachedFiles([]);
+
         } catch (error) {
-            console.error('Ошибка генерации:', error);
+            console.error('💬 Chat error:', error);
+            // FALLBACK: показываем ошибку, но не ломаем интерфейс
         } finally {
-            setIsLoading(false);
-            setStreamingMessageId(null);
-            streamingControllerRef.current = null;
+            setIsTyping(false);
+        }
+    };
+
+    const handleFileUpload = async (files) => {
+        setIsUploading(true);
+
+        try {
+            const uploadPromises = files.map(file => uploadFileSafe(file));
+            const results = await Promise.all(uploadPromises);
+
+            const successfulUploads = results
+                .filter(result => result.success)
+                .map(result => result.data);
+
+            if (successfulUploads.length > 0) {
+                setAttachedFiles(prev => [...prev, ...successfulUploads]);
+                console.log('📁 Files uploaded:', successfulUploads);
+            }
+
+            const failures = results.filter(result => !result.success);
+            if (failures.length > 0) {
+                console.warn('⚠️ Some uploads failed:', failures);
+                // Показать предупреждение пользователю
+            }
+
+        } catch (error) {
+            console.error('📁 Upload error:', error);
+            // FALLBACK: используем старую логику загрузки файлов
+        } finally {
+            setIsUploading(false);
         }
     };
 

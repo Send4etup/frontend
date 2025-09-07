@@ -8,12 +8,15 @@ import { getChatHistory, createToolChat, sendMessage } from '../../services/educ
 import { pageTransition, itemAnimation } from '../../utils/animations';
 import './HomePage.css';
 import RecentChats from "../../components/RecentChats/RecentChats.jsx";
+import { useBackendIntegration } from '../../hooks/useBackendIntegration';
+
 
 const HomePage = ({ user }) => {
     const navigate = useNavigate();
     const [inputValue, setInputValue] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const { backendStatus, user, authenticate } = useBackendIntegration();
 
     useEffect(() => {
         loadChatHistory();
@@ -299,6 +302,18 @@ const HomePage = ({ user }) => {
                     )}
                 </motion.div>
             </div>
+            {!backendStatus.isOnline && (
+                <div style={{
+                    background: '#f59e0b',
+                    color: '#000',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    marginBottom: '16px',
+                    textAlign: 'center'
+                }}>
+                    ⚠️ Работа в автономном режиме
+                </div>
+            )}
         </motion.div>
     );
 };
