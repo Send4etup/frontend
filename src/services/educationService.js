@@ -216,3 +216,81 @@ export const deleteFile = async (fileId) => {
         throw error;
     }
 };
+
+export const getAIResponseStream = async (message, options = {}) => {
+    try {
+        const { chatHistory = [], chatId = null, onChunk = null, signal = null } = options;
+
+        // Если есть поддержка streaming в бэкенде, используем её
+        const controller = new AbortController();
+        const combinedSignal = signal || controller.signal;
+
+        const response = await fetch('/api/chat/ai-response', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message,
+                chat_id: chatId,
+                context: { chatHistory }
+            }),
+            signal: combinedSignal
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Проверяем, поддерживает ли бэкенд streaming
+        const contentType = response.headers.get('content-type');
+
+        if (contentType && contentType.includes('text/plain')) {
+            // Streaming response
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let result = '';
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    result += chunk;
+
+                    // Вызываем callback для каждого chunk'а
+                    if (onChunk && typeof onChunk === 'function') {
+                        onChunk(chunk);
+                    }
+                }
+            } finally {
+                reader.releaseLock();
+            }
+
+            return { message: result };
+        } else {
+            // Обычный JSON response
+            const data = await response.json();
+            return data;
+        }
+
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            console.log('AI response streaming aborted');
+            throw error;
+        }
+
+        console.error('Failed to get AI response stream:', error);
+
+        // Fallback на обычный getAIResponse
+        try {
+            return await getAIResponse(message, chatId, { chatHistory });
+        } catch (fallbackError) {
+            console.error('Fallback also failed:', fallbackError);
+            throw fallbackError;
+        }
+    }
+};
+

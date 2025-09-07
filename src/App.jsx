@@ -1,31 +1,142 @@
+// src/App.jsx - ПОЛНОСТЬЮ ПЕРЕПИСАННАЯ ВЕРСИЯ
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
-// Существующие импорты (НЕ МЕНЯЕМ)
+// Hooks
 import { useSimpleAuth } from './hooks/useSimpleAuth';
-import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
-import Layout from './components/Layout/Layout';
-import SimpleLoader from './components/SimpleLoader/SimpleLoader';
-import AuthError from './components/AuthError/AuthError';
+import { useBackendIntegration } from './hooks/useBackendIntegration';
 
-// Страницы (НЕ МЕНЯЕМ)
+// Pages
 import HomePage from './pages/HomePage/HomePage';
 import SchoolPage from './pages/SchoolPage/SchoolPage';
 import EducationPage from './pages/EducationPage/EducationPage';
 import ProfilePage from './pages/ProfilePage/ProfilePage';
 import IdeasPage from './pages/IdeasPage/IdeasPage';
 import VideosPage from './pages/VideosPage/VideosPage';
-import TestPage from './pages/TestPage/TestPage';
-import AIChatPage from './pages/AIChatPage/AIChatPage';
-import NotFoundPage from './pages/NotFoundPage/NotFoundPage';
+import TestPage from "./pages/TestPage/TestPage.jsx";
+import AIChatPage from "./pages/ChatPage/ChatPage.jsx";
+import NotFoundPage from "./pages/NotFoundPage/NotFoundPage.jsx";
 
-// НОВЫЕ ИМПОРТЫ (добавляем для интеграции с бэкендом)
-import { useBackendIntegration } from './hooks/useBackendIntegration';
+// Components
+import Layout from './components/Layout/Layout';
+import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
+
+// Styles
 import './App.css';
 
+// =====================================================
+// КОМПОНЕНТЫ ДЛЯ ОТОБРАЖЕНИЯ СОСТОЯНИЙ
+// =====================================================
+
+// Компонент для отображения ошибки аутентификации
+const AuthError = ({ error, onRetry }) => (
+    <div className="auth-error">
+        <div className="auth-error-content">
+            <h2>Ошибка загрузки</h2>
+            <p>{error}</p>
+            <button onClick={onRetry} className="retry-btn">
+                Попробовать снова
+            </button>
+        </div>
+    </div>
+);
+
+// Компонент загрузки
+const SimpleLoader = () => (
+    <div className="simple-loader">
+        <LoadingSpinner fullScreen />
+        <div className="loader-info">
+            <p>Подключение к ТоварищБоту...</p>
+        </div>
+    </div>
+);
+
+// Компонент для отображения требования авторизации
+const AuthRequired = ({ onRetry }) => (
+    <div className="auth-required">
+        <div className="auth-required-content">
+            <h2>Требуется авторизация</h2>
+            <p>Попробуем авторизоваться автоматически...</p>
+            <button onClick={onRetry} className="retry-btn">
+                Попробовать снова
+            </button>
+        </div>
+    </div>
+);
+
+// Индикатор статуса бэкенда
+const BackendStatusIndicator = ({ status }) => {
+    const [showSuccess, setShowSuccess] = React.useState(true);
+
+    // Скрываем успешное подключение через 3 секунды
+    React.useEffect(() => {
+        if (status?.isOnline) {
+            const timer = setTimeout(() => setShowSuccess(false), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [status?.isOnline]);
+
+    // Не показываем ничего во время проверки
+    if (!status || status.isChecking) {
+        return null;
+    }
+
+    // Показываем предупреждение если бэкенд недоступен
+    if (!status.isOnline) {
+        return (
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                background: 'linear-gradient(90deg, #f59e0b, #d97706)',
+                color: '#000',
+                padding: '6px 12px',
+                fontSize: '13px',
+                fontWeight: '500',
+                zIndex: 9999,
+                textAlign: 'center',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+                ⚠️ Сервер недоступен - работаем в автономном режиме
+            </div>
+        );
+    }
+
+    // Показываем успешное подключение только первые 3 секунды
+    if (status.isOnline && showSuccess) {
+        return (
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                background: 'linear-gradient(90deg, #43ff65, #22c55e)',
+                color: '#000',
+                padding: '6px 12px',
+                fontSize: '13px',
+                fontWeight: '500',
+                zIndex: 9999,
+                textAlign: 'center',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                animation: 'slideDown 0.3s ease-out'
+            }}>
+                ✅ Подключено к серверу ТоварищБот
+            </div>
+        );
+    }
+
+    return null;
+};
+
+// =====================================================
+// ГЛАВНЫЙ КОМПОНЕНТ ПРИЛОЖЕНИЯ
+// =====================================================
+
 function App() {
-    // СУЩЕСТВУЮЩАЯ ЛОГИКА (оставляем как есть)
+    // Используем существующую авторизацию
     const {
         user,
         isLoading,
@@ -39,20 +150,32 @@ function App() {
         retry
     } = useSimpleAuth();
 
-    // НОВАЯ ЛОГИКА (добавляем для бэкенда)
+    // Добавляем интеграцию с бэкендом
     const {
         backendStatus,
         user: backendUser,
         authenticate: backendAuth,
-        isReady: backendReady
+        isAuthenticating,
+        checkBackend
     } = useBackendIntegration();
 
-    // СУЩЕСТВУЮЩАЯ ЛОГИКА ЗАГРУЗКИ (не меняем)
+    // Логирование для отладки
+    React.useEffect(() => {
+        console.log('🔍 App State:', {
+            user: user ? `${user.display_name || user.username} (${user.subscription_type})` : null,
+            isLoading,
+            isAuthenticated,
+            backendOnline: backendStatus?.isOnline,
+            backendUser: backendUser ? `${backendUser.display_name}` : null
+        });
+    }, [user, isLoading, isAuthenticated, backendStatus, backendUser]);
+
+    // Показываем загрузку во время инициализации
     if (isLoading) {
         return <SimpleLoader />;
     }
 
-    // СУЩЕСТВУЮЩАЯ ЛОГИКА ОШИБОК (не меняем)
+    // Показываем ошибку, если что-то пошло не так
     if (error && !user) {
         return (
             <AuthError
@@ -62,41 +185,37 @@ function App() {
         );
     }
 
-    // СУЩЕСТВУЮЩАЯ ЛОГИКА АВТОРИЗАЦИИ (не меняем)
+    // Если пользователь не аутентифицирован
     if (!isAuthenticated || !user) {
-        return (
-            <div className="auth-required">
-                <div className="auth-required-content">
-                    <h2>Требуется авторизация</h2>
-                    <p>Попробуем авторизоваться автоматически...</p>
-                    <button onClick={retry} className="retry-btn">
-                        Попробовать снова
-                    </button>
-                </div>
-            </div>
-        );
+        return <AuthRequired onRetry={retry} />;
     }
 
-    // РАСШИРЕННЫЙ ОБЪЕКТ ПОЛЬЗОВАТЕЛЯ (дополняем, не заменяем)
+    // Создаем расширенный объект пользователя с методами
     const userWithMethods = {
         ...user,
-        // Существующие методы (оставляем)
+        // Существующие методы (оставляем как есть)
         updatePoints: updateUserPoints,
         trackActivity: trackUserActivity,
         refresh: refreshUserData,
         showNotification,
         logout,
 
-        // НОВЫЕ МЕТОДЫ для работы с бэкендом (добавляем)
+        // Новые свойства для работы с бэкендом
         backendStatus,
         backendUser,
         isBackendOnline: backendStatus?.isOnline || false,
-        authenticateBackend: backendAuth
+        authenticateBackend: backendAuth,
+        checkBackend,
+        isBackendAuthenticating: isAuthenticating,
+
+        // Объединенная информация о токенах (приоритет у бэкенда)
+        tokens_balance: backendUser?.tokens_balance || user.tokens_balance || 0,
+        subscription_type: backendUser?.subscription_type || user.subscription_type || 'free'
     };
 
     return (
         <ErrorBoundary>
-            {/* НОВЫЙ КОМПОНЕНТ: Индикатор статуса бэкенда (НЕ БЛОКИРУЕТ работу) */}
+            {/* Индикатор статуса бэкенда */}
             <BackendStatusIndicator status={backendStatus} />
 
             <Router>
@@ -105,7 +224,7 @@ function App() {
                         <Route path="/" element={<Layout user={userWithMethods} />}>
                             <Route index element={<Navigate to="/home" replace />} />
 
-                            {/* Передаем расширенный объект пользователя во ВСЕ компоненты */}
+                            {/* Передаем расширенный объект пользователя во все компоненты */}
                             <Route
                                 path="home"
                                 element={<HomePage user={userWithMethods} />}
@@ -151,69 +270,5 @@ function App() {
         </ErrorBoundary>
     );
 }
-
-// НОВЫЙ КОМПОНЕНТ: Индикатор статуса бэкенда
-const BackendStatusIndicator = ({ status }) => {
-    // Не показываем ничего если бэкенд проверяется
-    if (!status || status.isChecking) {
-        return null;
-    }
-
-    // Показываем только предупреждения, не блокируем работу
-    if (!status.isOnline) {
-        return (
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                background: 'linear-gradient(90deg, #f59e0b, #d97706)',
-                color: '#000',
-                padding: '6px 12px',
-                fontSize: '13px',
-                fontWeight: '500',
-                zIndex: 9999,
-                textAlign: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-                ⚠️ Сервер недоступен - работаем в автономном режиме
-            </div>
-        );
-    }
-
-    // Показываем успешное подключение только первые 3 секунды
-    const [showSuccess, setShowSuccess] = React.useState(true);
-
-    React.useEffect(() => {
-        if (status.isOnline) {
-            const timer = setTimeout(() => setShowSuccess(false), 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [status.isOnline]);
-
-    if (status.isOnline && showSuccess) {
-        return (
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                background: 'linear-gradient(90deg, #43ff65, #22c55e)',
-                color: '#000',
-                padding: '6px 12px',
-                fontSize: '13px',
-                fontWeight: '500',
-                zIndex: 9999,
-                textAlign: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                animation: 'slideDown 0.3s ease-out'
-            }}>
-                ✅ Подключено к серверу ТоварищБот
-            </div>
-        );
-    }
-
-    return null;
-};
 
 export default App;
