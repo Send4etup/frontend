@@ -1,23 +1,53 @@
 // src/pages/HomePage/HomePage.jsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import { Camera, Headphones, Image, FileText, Brain, Send } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import './HomePage.css';
+
+// Компоненты
 import ProgressBar from '../../components/ProgressBar/ProgressBar';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
-import { getChatHistory, createToolChat, sendMessage } from '../../services/educationService';
-import { pageTransition, itemAnimation } from '../../utils/animations';
-import './HomePage.css';
 import RecentChats from "../../components/RecentChats/RecentChats.jsx";
-import { useBackendIntegration } from '../../hooks/useBackendIntegration';
 
-const HomePage = ({ user: currentUser }) => {  // ИСПРАВЛЕНО: переименовали prop
+// Сервисы
+import { getChatHistory, createToolChat, sendMessage } from '../../services/educationService';
+
+// Утилиты и анимации
+import { pageTransition, itemAnimation } from '../../utils/animations';
+
+// Хуки (опциональные - с fallback)
+let useBackendIntegration;
+try {
+    useBackendIntegration = require('../../hooks/useBackendIntegration').useBackendIntegration;
+} catch (error) {
+    console.warn('useBackendIntegration hook not found, using fallback');
+    useBackendIntegration = () => ({
+        backendStatus: { isOnline: false, isChecking: false },
+        user: null,
+        authenticate: () => {}
+    });
+}
+
+// Framer Motion с fallback
+let motion;
+try {
+    motion = require('framer-motion').motion;
+} catch (error) {
+    console.warn('framer-motion not found, using fallback');
+    motion = {
+        div: 'div',
+        button: 'button'
+    };
+}
+
+const HomePage = ({ user: currentUser }) => {
     const navigate = useNavigate();
     const [inputValue, setInputValue] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // ИСПРАВЛЕНО: теперь нет конфликта имен
+    // Backend интеграция с fallback
     const { backendStatus, user: backendUser, authenticate } = useBackendIntegration();
 
     useEffect(() => {
@@ -26,11 +56,14 @@ const HomePage = ({ user: currentUser }) => {  // ИСПРАВЛЕНО: пере
 
     const loadChatHistory = async () => {
         setIsLoading(true);
+        setError(null);
         try {
             const history = await getChatHistory();
-            setChatHistory(history);
+            setChatHistory(history || []);
         } catch (error) {
             console.error('Failed to load chat history:', error);
+            setError('Не удалось загрузить историю чатов');
+            setChatHistory([]); // Fallback к пустому массиву
         } finally {
             setIsLoading(false);
         }
@@ -40,6 +73,7 @@ const HomePage = ({ user: currentUser }) => {  // ИСПРАВЛЕНО: пере
         if (!inputValue.trim()) return;
 
         try {
+            setError(null);
             // Создаем новый чат с обычным сообщением
             const chatId = Date.now();
 
@@ -57,6 +91,7 @@ const HomePage = ({ user: currentUser }) => {  // ИСПРАВЛЕНО: пере
             });
         } catch (error) {
             console.error('Failed to send message:', error);
+            setError('Не удалось отправить сообщение');
         }
     };
 
@@ -179,6 +214,7 @@ const HomePage = ({ user: currentUser }) => {  // ИСПРАВЛЕНО: пере
 
     const handleQuickAction = async (actionType) => {
         try {
+            setError(null);
             const actionConfig = quickActions.find(action => action.action === actionType);
             if (!actionConfig) return;
 
@@ -206,7 +242,7 @@ const HomePage = ({ user: currentUser }) => {  // ИСПРАВЛЕНО: пере
         }
     };
 
-    // ИСПРАВЛЕНО: используем currentUser вместо user
+    // Пользовательские данные с fallback
     const userDisplayName = currentUser?.display_name || currentUser?.username || 'Друг';
     const userEnergy = currentUser?.tokens_balance || 0;
     const maxEnergy = 100; // Можно настроить в зависимости от тарифа
@@ -222,101 +258,121 @@ const HomePage = ({ user: currentUser }) => {  // ИСПРАВЛЕНО: пере
         }
     }, [backendStatus, backendUser, currentUser]);
 
+    const MotionDiv = motion?.div || 'div';
+    const MotionButton = motion?.button || 'button';
+
     return (
-        <motion.div
+        <MotionDiv
             className="home-page"
             variants={pageTransition}
             initial="initial"
             animate="in"
             exit="out"
         >
-            {/* Заголовок с приветствием */}
-            <motion.div className="home-header" variants={itemAnimation}>
-                <div className="greeting">
-                    <h1>Привет, {userDisplayName}! 👋</h1>
-                    <p className="quote">
-                        "Обучение никогда не истощает ум" — Леонардо да Винчи
-                    </p>
-                </div>
-
-                {/* Индикатор энергии (токенов) */}
-                <div className="energy-indicator">
-                    <div className="energy-header">
-                        <span className="energy-label">Энергия</span>
-                        <span className="energy-value">{userEnergy}/{maxEnergy}</span>
+            <div className="container">
+                {/* Заголовок с приветствием */}
+                <MotionDiv className="home-header" variants={itemAnimation}>
+                    <div className="greeting">
+                        <h1>Привет, {userDisplayName}! 👋</h1>
+                        <p className="quote">
+                            "Обучение никогда не истощает ум" — Леонардо да Винчи
+                        </p>
                     </div>
-                    <ProgressBar
-                        current={userEnergy}
-                        max={maxEnergy}
-                        color="var(--secondary-accent)"
-                        height="8px"
-                    />
-                    {/* Показываем статус бэкенда для отладки */}
-                    {backendStatus && !backendStatus.isOnline && (
-                        <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>
-                            Автономный режим
+
+                    {/* Индикатор энергии (токенов) */}
+                    <div className="energy-indicator">
+                        <div className="energy-header">
+                            <span className="energy-label">Энергия</span>
+                            <span className="energy-value">{userEnergy}/{maxEnergy}</span>
                         </div>
-                    )}
-                </div>
-            </motion.div>
-
-            {/* Поле быстрого ввода */}
-            <motion.div className="quick-input" variants={itemAnimation}>
-                <div className="input-container">
-                    <input
-                        type="text"
-                        placeholder="Спроси что-нибудь у ТоварищБота..."
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                        className="quick-input-field"
-                    />
-                    <button
-                        onClick={handleSendMessage}
-                        className="send-button"
-                        disabled={!inputValue.trim()}
-                    >
-                        <Send size={20} />
-                    </button>
-                </div>
-            </motion.div>
-
-            {/* Быстрые действия */}
-            <motion.div className="quick-actions" variants={itemAnimation}>
-                <h2>Быстрые действия</h2>
-                <div className="actions-grid">
-                    {quickActions.map((action, index) => (
-                        <motion.button
-                            key={action.action}
-                            className="action-card"
-                            onClick={() => handleQuickAction(action.action)}
-                            variants={itemAnimation}
-                            custom={index}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                        >
-                            <action.icon className="action-icon" size={24} />
-                            <span className="action-label">{action.label}</span>
-                        </motion.button>
-                    ))}
-                </div>
-            </motion.div>
-
-            {/* История чатов */}
-            <motion.div className="recent-section" variants={itemAnimation}>
-                <h2>Последние чаты</h2>
-                {isLoading ? (
-                    <div className="loading-container">
-                        <LoadingSpinner />
+                        <ProgressBar
+                            current={userEnergy}
+                            max={maxEnergy}
+                            color="var(--secondary-accent)"
+                            height="8px"
+                        />
+                        {/* Показываем статус бэкенда для отладки */}
+                        {backendStatus && !backendStatus.isOnline && (
+                            <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>
+                                Автономный режим
+                            </div>
+                        )}
                     </div>
-                ) : (
-                    <RecentChats
-                        chats={chatHistory}
-                        onChatClick={(chatId) => navigate(`/chat/${chatId}`)}
-                    />
+                </MotionDiv>
+
+                {/* Поле быстрого ввода */}
+                <MotionDiv className="quick-input" variants={itemAnimation}>
+                    <div className="input-container">
+                        <input
+                            type="text"
+                            placeholder="Спроси что-нибудь у ТоварищБота..."
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                            className="quick-input-field"
+                        />
+                        <button
+                            onClick={handleSendMessage}
+                            className="send-button"
+                            disabled={!inputValue.trim()}
+                        >
+                            <Send size={20} />
+                        </button>
+                    </div>
+                </MotionDiv>
+
+                {/* Отображение ошибок */}
+                {error && (
+                    <div className="error-message" style={{
+                        color: '#ef4444',
+                        padding: '10px',
+                        textAlign: 'center',
+                        marginBottom: '16px',
+                        backgroundColor: '#2a1a1a',
+                        borderRadius: '8px',
+                        border: '1px solid #ef4444'
+                    }}>
+                        {error}
+                    </div>
                 )}
-            </motion.div>
-        </motion.div>
+
+                {/* Быстрые действия */}
+                <MotionDiv className="quick-actions" variants={itemAnimation}>
+                    <h2>Быстрые действия</h2>
+                    <div className="actions-grid">
+                        {quickActions.map((action, index) => (
+                            <MotionButton
+                                key={action.action}
+                                className="action-card"
+                                onClick={() => handleQuickAction(action.action)}
+                                variants={itemAnimation}
+                                custom={index}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <action.icon className="action-icon" size={24} />
+                                <span className="action-label">{action.label}</span>
+                            </MotionButton>
+                        ))}
+                    </div>
+                </MotionDiv>
+
+                {/* История чатов */}
+                <MotionDiv className="recent-section" variants={itemAnimation}>
+                    <h2>Последние чаты</h2>
+                    {isLoading ? (
+                        <div className="loading-container">
+                            <LoadingSpinner />
+                        </div>
+                    ) : (
+                        <RecentChats
+                            chats={chatHistory}
+                            onChatClick={(chatId) => navigate(`/chat/${chatId}`)}
+                        />
+                    )}
+                </MotionDiv>
+            </div>
+        </MotionDiv>
     );
 };
 
