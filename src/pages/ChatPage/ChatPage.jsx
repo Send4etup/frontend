@@ -708,33 +708,64 @@ const ChatPage = () => {
     };
 
     const handleSendMessage = async () => {
-        if (!messageInput.trim() && attachedFiles.length === 0) return;
+        // ИСПРАВЛЕНО: используем inputValue вместо messageInput
+        if (!inputValue.trim() && attachedFiles.length === 0) return;
 
-        const userMessage = messageInput.trim();
-        setMessageInput('');
-        setIsTyping(true);
+        const userMessage = inputValue.trim();
+        setInputValue(''); // ИСПРАВЛЕНО: очищаем inputValue
+        setIsLoading(true); // Или setIsTyping(true) в зависимости от того, какая переменная используется
 
         try {
+            // Добавляем сообщение пользователя в список
+            const userMsg = {
+                id: Date.now(),
+                type: 'user',
+                content: userMessage,
+                timestamp: new Date(),
+                files: attachedFiles.length > 0 ? [...attachedFiles] : undefined
+            };
+
+            setMessages(prev => [...prev, userMsg]);
+
             // НОВОЕ: пробуем отправить через новый бэкенд
-            const sendResult = await sendMessageSafe(userMessage, attachedFiles, currentChatId);
+            const sendResult = await sendMessageSafe(userMessage, attachedFiles, chatId);
 
             if (sendResult.success) {
                 console.log('✅ Message sent via backend:', sendResult.data);
 
                 // Если успешно, получаем ответ ИИ
-                const aiResult = await getAIResponseSafe(userMessage, currentChatId, {
-                    tool_type: currentChatType,
+                const aiResult = await getAIResponseSafe(userMessage, chatId, {
+                    tool_type: currentChatType || 'general',
                     files_count: attachedFiles.length
                 });
 
                 if (aiResult.success) {
                     console.log('🤖 AI response received:', aiResult.data);
-                    // Здесь обновляем UI как обычно
+
+                    // Добавляем ответ ИИ
+                    const aiResponse = {
+                        id: Date.now() + 1,
+                        type: 'assistant',
+                        content: aiResult.data.response || aiResult.data.message,
+                        timestamp: new Date()
+                    };
+
+                    setMessages(prev => [...prev, aiResponse]);
                 }
             } else {
                 console.warn('⚠️ Backend failed, using fallback');
+
                 // FALLBACK: используем старую логику
-                // Вставить здесь СТАРЫЙ код отправки сообщений
+                const aiResponse = await getAIResponse(userMessage, attachedFiles);
+
+                const assistantMsg = {
+                    id: Date.now() + 1,
+                    type: 'assistant',
+                    content: aiResponse,
+                    timestamp: new Date()
+                };
+
+                setMessages(prev => [...prev, assistantMsg]);
             }
 
             // Очищаем файлы
@@ -742,14 +773,24 @@ const ChatPage = () => {
 
         } catch (error) {
             console.error('💬 Chat error:', error);
-            // FALLBACK: показываем ошибку, но не ломаем интерфейс
+
+            // Показываем ошибку пользователю
+            const errorMessage = {
+                id: Date.now() + 1,
+                type: 'assistant',
+                content: 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте ещё раз.',
+                timestamp: new Date()
+            };
+
+            setMessages(prev => [...prev, errorMessage]);
         } finally {
-            setIsTyping(false);
+            setIsLoading(false); // Или setIsTyping(false)
         }
     };
 
+
     const handleFileUpload = async (files) => {
-        setIsUploading(true);
+        setIsloading(true);
 
         try {
             const uploadPromises = files.map(file => uploadFileSafe(file));
