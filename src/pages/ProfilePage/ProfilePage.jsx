@@ -7,11 +7,10 @@ import {
 } from 'lucide-react';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import SubscriptionCard from '../../components/SubscriptionCard/SubscriptionCard';
-import { getUserProfile, updateProfile } from '../../services/userService';
 import { pageTransition, itemAnimation } from '../../utils/animations';
 import './ProfilePage.css';
 
-const ProfilePage = ({ user }) => {
+const ProfilePage = ({ user: currentUser }) => {
     const navigate = useNavigate();
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -19,17 +18,18 @@ const ProfilePage = ({ user }) => {
     const [profileLoading, setProfileLoading] = useState(true);
     const [menuLoading, setMenuLoading] = useState(true);
     const [tariffLoading, setTariffLoading] = useState(true);
-    const [profileData, setProfileData] = useState({
-        name: user?.name || 'None',
-        class: '11-А класс',
-        school: 'Стартуем',
-        phone: '+7 (983) 231 23 21',
-        email: 'Example@mail.com',
-        city: 'Москва',
-        schoolNumber: '1499',
-        classNumber: '11Б',
-        avatar: '/avatars/profile.jpg'
-    });
+    const profileData = currentUser;
+    // const [profileData, setProfileData] = useState({
+    //     name: user?.name || 'None',
+    //     class: '11-А класс',
+    //     school: 'Стартуем',
+    //     phone: '+7 (983) 231 23 21',
+    //     email: 'Example@mail.com',
+    //     city: 'Москва',
+    //     schoolNumber: '1499',
+    //     classNumber: '11Б',
+    //     avatar: '/avatars/profile.jpg'
+    // });
 
     const subscriptions = [
         {
@@ -72,61 +72,15 @@ const ProfilePage = ({ user }) => {
         }
     ];
 
-    useEffect(() => {
-        loadProfile();
-        loadMenuData();
-        loadTariffData();
-    }, []);
-
-    const loadProfile = async () => {
-        setProfileLoading(true);
-        try {
-            const data = await getUserProfile();
-            if (data) {
-                setProfileData(prev => ({ ...prev, ...data }));
-            }
-        } catch (error) {
-            console.error('Failed to load profile:', error);
-        } finally {
-            // Симуляция загрузки
-            setTimeout(() => {
-                setProfileLoading(false);
-            }, 800);
-        }
-    };
-
-    const loadMenuData = async () => {
-        setMenuLoading(true);
-        try {
-            // Симуляция загрузки данных меню
-            await new Promise(resolve => setTimeout(resolve, 1200));
-        } catch (error) {
-            console.error('Failed to load menu data:', error);
-        } finally {
-            setMenuLoading(false);
-        }
-    };
-
-    const loadTariffData = async () => {
-        setTariffLoading(true);
-        try {
-            // Симуляция загрузки тарифных данных
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        } catch (error) {
-            console.error('Failed to load tariff data:', error);
-        } finally {
-            setTariffLoading(false);
-        }
-    };
-
-    const handleSaveProfile = async () => {
-        try {
-            await updateProfile(profileData);
-            setIsEditing(false);
-        } catch (error) {
-            console.error('Failed to update profile:', error);
-        }
-    };
+    //
+    // const handleSaveProfile = async () => {
+    //     try {
+    //         await updateProfile(profileData);
+    //         setIsEditing(false);
+    //     } catch (error) {
+    //         console.error('Failed to update profile:', error);
+    //     }
+    // };
 
     const handleNavigation = (path) => {
         navigate(path);
@@ -334,25 +288,25 @@ const ProfilePage = ({ user }) => {
                         {/*    </div>*/}
                         {/*</div>*/}
 
-                        <div className="form-actions">
-                            <motion.button
-                                onClick={handleSaveProfile}
-                                className="btn btn-primary"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                            >
-                                Сохранить
-                            </motion.button>
+                        {/*<div className="form-actions">*/}
+                        {/*    <motion.button*/}
+                        {/*        onClick={handleSaveProfile}*/}
+                        {/*        className="btn btn-primary"*/}
+                        {/*        whileHover={{ scale: 1.05 }}*/}
+                        {/*        whileTap={{ scale: 0.95 }}*/}
+                        {/*    >*/}
+                        {/*        Сохранить*/}
+                        {/*    </motion.button>*/}
 
-                            <motion.button
-                                onClick={() => setIsEditing(false)}
-                                className="btn btn-secondary"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                            >
-                                Отменить
-                            </motion.button>
-                        </div>
+                        {/*    <motion.button*/}
+                        {/*        onClick={() => setIsEditing(false)}*/}
+                        {/*        className="btn btn-secondary"*/}
+                        {/*        whileHover={{ scale: 1.05 }}*/}
+                        {/*        whileTap={{ scale: 0.95 }}*/}
+                        {/*    >*/}
+                        {/*        Отменить*/}
+                        {/*    </motion.button>*/}
+                        {/*</div>*/}
                     </motion.div>
                 </div>
             </motion.div>
@@ -387,10 +341,10 @@ const ProfilePage = ({ user }) => {
                 >
                     <div className="profile-header">
                         <div className="avatar">
-                            {profileData.avatar ? (
+                            {profileData.telegram.photo_url ? (
                                 <img
-                                    src={profileData.avatar}
-                                    alt={profileData.name}
+                                    src={profileData.telegram.photo_url}
+                                    alt={profileData.telegram.username}
                                     onError={(e) => {
                                         e.target.style.display = 'none';
                                         e.target.nextSibling.style.display = 'block';
@@ -399,11 +353,11 @@ const ProfilePage = ({ user }) => {
                             ) : null}
                             <User
                                 className="avatar-icon"
-                                style={{ display: profileData.avatar ? 'none' : 'block' }}
+                                style={{ display: profileData.telegram.avatar ? 'none' : 'block' }}
                             />
                         </div>
                         <div className="profile-info">
-                            <h1>{profileData.name}</h1>
+                            <h1>{profileData.telegram.username}</h1>
                             {/*<p className="profile-details">{profileData.class} • {profileData.school}</p>*/}
                             {/*<p className="profile-details">*/}
                             {/*    <Trophy className="badge-icon"/> Отличник • <Zap className="badge-icon"/> Серия дней: 156*/}
@@ -411,14 +365,14 @@ const ProfilePage = ({ user }) => {
                         </div>
                     </div>
 
-                    <motion.button
-                        onClick={() => setIsEditing(true)}
-                        className="btn btn-white"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        Редактировать профиль
-                    </motion.button>
+                    {/*<motion.button*/}
+                    {/*    onClick={() => setIsEditing(true)}*/}
+                    {/*    className="btn btn-white"*/}
+                    {/*    whileHover={{ scale: 1.05 }}*/}
+                    {/*    whileTap={{ scale: 0.95 }}*/}
+                    {/*>*/}
+                    {/*    Редактировать профиль*/}
+                    {/*</motion.button>*/}
                 </motion.div>
 
                 <motion.div
@@ -479,34 +433,23 @@ const ProfilePage = ({ user }) => {
                     </motion.button>
                 </motion.div>
 
-                {tariffLoading ? (
-                    <motion.div
-                        className="tariff-card"
-                        variants={itemAnimation}
-                    >
-                        <div className="loading-block">
-                            <LoadingSpinner />
-                        </div>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        className="tariff-card"
-                        variants={itemAnimation}
-                        onClick={handleTariffManage}
-                    >
-                        <motion.div className="tariff-content"
+                <motion.div
+                    className="tariff-card"
+                    variants={itemAnimation}
+                    onClick={handleTariffManage}
+                >
+                    <motion.div className="tariff-content"
 
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                        >
-                            <div>
-                                <p className="tariff-title">Ваш тариф: {currentTariff?.title || 'На челе'}</p>
-                                <p className="tariff-manage">управлять ›</p>
-                            </div>
-                            <div className="tariff-emoji">😎</div>
-                        </motion.div>
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                    >
+                        <div>
+                            <p className="tariff-title">Ваш тариф: {profileData.db.subscription_type}</p>
+                            <p className="tariff-manage">управлять ›</p>
+                        </div>
+                        <div className="tariff-emoji">😎</div>
                     </motion.div>
-                )}
+                </motion.div>
 
                 {/*<motion.button*/}
                 {/*    className="promo-button"*/}

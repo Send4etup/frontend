@@ -1,11 +1,7 @@
-// src/App.jsx - ПОЛНОСТЬЮ ПЕРЕПИСАННАЯ ВЕРСИЯ
-import React from 'react';
+// src/App.jsx - ОБНОВЛЕННАЯ ВЕРСИЯ С РЕАЛЬНОЙ АВТОРИЗАЦИЕЙ
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-
-// Hooks
-import { useSimpleAuth } from './hooks/useSimpleAuth';
-import { useBackendIntegration } from './hooks/useBackendIntegration';
 
 // Pages
 import HomePage from './pages/HomePage/HomePage';
@@ -23,6 +19,9 @@ import Layout from './components/Layout/Layout';
 import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 
+// Hook для авторизации
+import { useAuth } from "./hooks/useAuth.js";
+
 // Styles
 import './App.css';
 
@@ -30,69 +29,58 @@ import './App.css';
 // КОМПОНЕНТЫ ДЛЯ ОТОБРАЖЕНИЯ СОСТОЯНИЙ
 // =====================================================
 
-// Компонент для отображения ошибки аутентификации
+// Компонент загрузки авторизации
+const AuthLoader = () => (
+    <div className="app-loading">
+        <div className="loading-container">
+            <LoadingSpinner />
+            <p>🔐 Авторизация через Telegram...</p>
+            <small>Получаем данные пользователя</small>
+        </div>
+    </div>
+);
+
+// Компонент ошибки авторизации
 const AuthError = ({ error, onRetry }) => (
-    <div className="auth-error">
-        <div className="auth-error-content">
-            <h2>Ошибка загрузки</h2>
+    <div className="app-error">
+        <div className="error-container">
+            <h2>⚠️ Ошибка авторизации</h2>
             <p>{error}</p>
-            <button onClick={onRetry} className="retry-btn">
-                Попробовать снова
-            </button>
+            <div className="error-actions">
+                <button onClick={onRetry} className="retry-btn">
+                    🔄 Попробовать снова
+                </button>
+                <button onClick={() => window.location.reload()} className="reload-btn">
+                    🔃 Перезагрузить страницу
+                </button>
+            </div>
+            <small>Убедитесь, что приложение запущено в Telegram</small>
         </div>
     </div>
 );
 
-// Компонент загрузки
-const SimpleLoader = () => (
-    <div className="simple-loader">
-        <LoadingSpinner fullScreen />
-        <div className="loader-info">
-            <p>Подключение к ТоварищБоту...</p>
-        </div>
-    </div>
-);
+// Индикатор статуса подключения к серверу
+const ConnectionStatus = ({ isOnline, isLoading }) => {
+    const [showSuccess, setShowSuccess] = useState(false);
 
-// Компонент для отображения требования авторизации
-const AuthRequired = ({ onRetry }) => (
-    <div className="auth-required">
-        <div className="auth-required-content">
-            <h2>Требуется авторизация</h2>
-            <p>Попробуем авторизоваться автоматически...</p>
-            <button onClick={onRetry} className="retry-btn">
-                Попробовать снова
-            </button>
-        </div>
-    </div>
-);
-
-// Индикатор статуса бэкенда
-const BackendStatusIndicator = ({ status }) => {
-    const [showSuccess, setShowSuccess] = React.useState(true);
-
-    // Скрываем успешное подключение через 3 секунды
-    React.useEffect(() => {
-        if (status?.isOnline) {
+    useEffect(() => {
+        if (isOnline && !isLoading) {
+            setShowSuccess(true);
             const timer = setTimeout(() => setShowSuccess(false), 3000);
             return () => clearTimeout(timer);
         }
-    }, [status?.isOnline]);
+    }, [isOnline, isLoading]);
 
-    // Не показываем ничего во время проверки
-    if (!status || status.isChecking) {
-        return null;
-    }
-
-    // Показываем предупреждение если бэкенд недоступен
-    if (!status.isOnline) {
+    // Показываем ошибку подключения
+    if (!isOnline && !isLoading) {
         return (
             <div style={{
                 position: 'fixed',
                 top: 0,
                 left: 0,
                 right: 0,
-                background: 'linear-gradient(90deg, #f59e0b, #d97706)',
-                color: '#000',
+                background: 'linear-gradient(90deg, #ef4444, #dc2626)',
+                color: '#fff',
                 padding: '6px 12px',
                 fontSize: '13px',
                 fontWeight: '500',
@@ -105,28 +93,27 @@ const BackendStatusIndicator = ({ status }) => {
         );
     }
 
-    // Показываем успешное подключение только первые 3 секунды
-    if (status.isOnline && showSuccess) {
-        return (
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                background: 'linear-gradient(90deg, #43ff65, #22c55e)',
-                color: '#000',
-                padding: '6px 12px',
-                fontSize: '13px',
-                fontWeight: '500',
-                zIndex: 9999,
-                textAlign: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                animation: 'slideDown 0.3s ease-out'
-            }}>
-                ✅ Подключено к серверу ТоварищБот
-            </div>
-        );
-    }
+    // Показываем успешное подключение
+    // if (isOnline && showSuccess) {
+    //     return (
+    //         <div style={{
+    //             position: 'fixed',
+    //             top: 0,
+    //             left: 0,
+    //             right: 0,
+    //             background: 'linear-gradient(90deg, #43ff65, #22c55e)',
+    //             color: '#000',
+    //             padding: '6px 12px',
+    //             fontSize: '13px',
+    //             fontWeight: '500',
+    //             zIndex: 9999,
+    //             textAlign: 'center',
+    //             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    //         }}>
+    //             ✅ Подключено к серверу ТоварищБот
+    //         </div>
+    //     );
+    // }
 
     return null;
 };
@@ -136,87 +123,167 @@ const BackendStatusIndicator = ({ status }) => {
 // =====================================================
 
 function App() {
-    // Используем существующую авторизацию
+    // Используем реальную авторизацию
     const {
         user,
         isLoading,
-        error,
         isAuthenticated,
-        refreshUserData,
-        updateUserPoints,
-        trackUserActivity,
+        error,
+        token,
         logout,
-        showNotification,
-        retry
-    } = useSimpleAuth();
+        refreshUser,
+        getAuthHeaders,
+        initializeAuth,
+        userDisplayName,
+        tokensBalance,
+        subscriptionType
+    } = useAuth();
 
-    // Добавляем интеграцию с бэкендом
-    const {
-        backendStatus,
-        user: backendUser,
-        authenticate: backendAuth,
-        isAuthenticating,
-        checkBackend
-    } = useBackendIntegration();
+    // Локальное состояние для статуса подключения к серверу
+    const [serverStatus, setServerStatus] = useState({
+        isOnline: false,
+        isChecking: false,
+        lastChecked: null
+    });
+
+    // Проверка подключения к серверу
+    const checkServerConnection = async () => {
+        setServerStatus(prev => ({ ...prev, isChecking: true }));
+
+        try {
+            const response = await fetch('http://127.0.0.1:3213/', {
+                method: 'GET',
+                timeout: 5000
+            });
+
+            const isOnline = response.ok;
+            setServerStatus({
+                isOnline,
+                isChecking: false,
+                lastChecked: new Date().toISOString()
+            });
+
+            console.log(`🌐 Сервер ${isOnline ? 'доступен' : 'недоступен'}`);
+
+        } catch (error) {
+            console.warn('⚠️ Сервер недоступен:', error.message);
+            setServerStatus({
+                isOnline: false,
+                isChecking: false,
+                lastChecked: new Date().toISOString()
+            });
+        }
+    };
+
+    // Проверяем подключение при загрузке и периодически
+    useEffect(() => {
+        checkServerConnection();
+
+        // Проверяем каждые 30 секунд
+        const interval = setInterval(checkServerConnection, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Логирование для отладки
-    React.useEffect(() => {
+    useEffect(() => {
         console.log('🔍 App State:', {
-            user: user ? `${user.display_name || user.username} (${user.subscription_type})` : null,
+            user: user ? `${userDisplayName} (${subscriptionType})` : null,
             isLoading,
             isAuthenticated,
-            backendOnline: backendStatus?.isOnline,
-            backendUser: backendUser ? `${backendUser.display_name}` : null
+            error,
+            serverOnline: serverStatus.isOnline,
+            tokensBalance
         });
-    }, [user, isLoading, isAuthenticated, backendStatus, backendUser]);
+    }, [user, isLoading, isAuthenticated, error, serverStatus.isOnline, userDisplayName, subscriptionType, tokensBalance]);
 
-    // Показываем загрузку во время инициализации
+    // Обработчик повтора при ошибке авторизации
+    const handleAuthRetry = () => {
+        console.log('🔄 Повторная попытка авторизации');
+        initializeAuth();
+    };
+
+    // Показываем загрузку авторизации
     if (isLoading) {
-        return <SimpleLoader />;
-    }
-
-    // Показываем ошибку, если что-то пошло не так
-    if (error && !user) {
         return (
-            <AuthError
-                error={error}
-                onRetry={retry}
-            />
+            <ErrorBoundary>
+                <AuthLoader />
+            </ErrorBoundary>
         );
     }
 
-    // Если пользователь не аутентифицирован
-    if (!isAuthenticated || !user) {
-        return <AuthRequired onRetry={retry} />;
+    // Показываем ошибку авторизации
+    if (error) {
+        return (
+            <ErrorBoundary>
+                <AuthError
+                    error={error}
+                    onRetry={handleAuthRetry}
+                />
+            </ErrorBoundary>
+        );
     }
 
-    // Создаем расширенный объект пользователя с методами
+    // Если не авторизован, показываем ошибку
+    if (!isAuthenticated || !user) {
+        return (
+            <ErrorBoundary>
+                <AuthError
+                    error="Не удалось авторизоваться в системе"
+                    onRetry={handleAuthRetry}
+                />
+            </ErrorBoundary>
+        );
+    }
+
+    // Расширенный объект пользователя с дополнительными методами
     const userWithMethods = {
         ...user,
-        // Существующие методы (оставляем как есть)
-        updatePoints: updateUserPoints,
-        trackActivity: trackUserActivity,
-        refresh: refreshUserData,
-        showNotification,
-        logout,
 
-        // Новые свойства для работы с бэкендом
-        backendStatus,
-        backendUser,
-        isBackendOnline: backendStatus?.isOnline || false,
-        authenticateBackend: backendAuth,
-        checkBackend,
-        isBackendAuthenticating: isAuthenticating,
+        // Статус подключения
+        isOnline: serverStatus.isOnline,
+        backendStatus: serverStatus,
 
-        // Объединенная информация о токенах (приоритет у бэкенда)
-        tokens_balance: backendUser?.tokens_balance || user.tokens_balance || 0,
-        subscription_type: backendUser?.subscription_type || user.subscription_type || 'free'
+        // Дополнительные свойства для совместимости
+        display_name: userDisplayName,
+        is_premium: subscriptionType !== 'free',
+
+        // Методы для работы с пользователем
+        updateUser: refreshUser,
+        refresh: refreshUser,
+        logout: logout,
+
+        // Методы для обновления состояния (заглушки для совместимости)
+        updatePoints: (points) => {
+            console.log('📈 Обновление баллов:', points);
+            // Здесь можно добавить реальную логику обновления
+        },
+
+        trackActivity: (activity) => {
+            console.log('📊 Отслеживание активности:', activity);
+            // Здесь можно добавить аналитику
+        },
+
+        showNotification: (message, type = 'info') => {
+            console.log(`📢 Уведомление [${type}]:`, message);
+            // Здесь можно добавить toast уведомления
+        },
+
+        // Методы для работы с API
+        getAuthHeaders,
+
+        // Статус подключения
+        setOnlineStatus: (status) => {
+            setServerStatus(prev => ({ ...prev, isOnline: status }));
+        }
     };
 
     return (
         <ErrorBoundary>
-            {/* Индикатор статуса бэкенда */}
-            <BackendStatusIndicator status={backendStatus} />
+            {/* Индикатор статуса подключения */}
+            <ConnectionStatus
+                isOnline={serverStatus.isOnline}
+                isLoading={serverStatus.isChecking}
+            />
 
             <Router>
                 <AnimatePresence mode="wait">
@@ -224,7 +291,7 @@ function App() {
                         <Route path="/" element={<Layout user={userWithMethods} />}>
                             <Route index element={<Navigate to="/home" replace />} />
 
-                            {/* Передаем расширенный объект пользователя во все компоненты */}
+                            {/* Все страницы получают авторизованного пользователя */}
                             <Route
                                 path="home"
                                 element={<HomePage user={userWithMethods} />}

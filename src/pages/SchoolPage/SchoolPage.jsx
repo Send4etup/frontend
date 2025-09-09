@@ -9,7 +9,6 @@ import {
 import ToolCard from '../../components/ToolCard/ToolCard';
 import { testsData } from '../../data/testData';
 import { pageTransition, itemAnimation } from '../../utils/animations';
-import { createToolChat } from '../../services/educationService';
 import './SchoolPage.css';
 
 const SchoolPage = () => {
@@ -250,42 +249,28 @@ const SchoolPage = () => {
         { id: 'история', name: 'История' }
     ];
 
-    const handleToolClick = async (action) => {
-        const tool = tools.find(t => t.action === action);
-        if (tool) {
-            try {
-                // Создаем чат для инструмента через API
-                const response = await createToolChat(
-                    action,
-                    tool.title,
-                    tool.description
-                );
+    const handleToolClick = async (tool) => {
+        try {
+            console.log('🎯 Mock: creating tool chat:', tool.action);
 
-                const chatId = response.chat_id || Date.now();
+            // Имитация создания чата (вместо API)
+            const mockChatId = `${tool.action}_${Date.now()}`;
 
-                navigate(`/chat/${chatId}`, {
-                    state: {
-                        initialMessage: tool.description,
-                        actionType: action,
-                        toolTitle: tool.title,
-                        isToolDescription: true
-                    }
-                });
-            } catch (error) {
-                console.error('Failed to create tool chat:', error);
-                // Fallback к локальному созданию чата
-                const chatId = Date.now();
-                navigate(`/chat/${chatId}`, {
-                    state: {
-                        initialMessage: tool.description,
-                        actionType: action,
-                        toolTitle: tool.title,
-                        isToolDescription: true
-                    }
-                });
-            }
+            navigate(`/chat/${mockChatId}`, {
+                state: {
+                    chatType: tool.action,
+                    toolConfig: tool,
+                    initialMessage: `Начинаем работу: ${tool.title}`
+                }
+            });
+
+        } catch (error) {
+            console.error('Failed to create tool chat:', error);
+            // Fallback навигация
+            navigate(`/chat/demo_${tool.id}`);
         }
     };
+
 
     const handleTestClick = (testId) => {
         navigate(`/test/${testId}`);
