@@ -22,6 +22,7 @@ import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
 import { pageTransition, itemAnimation } from '../../utils/animations';
 import './ChatPage.css';
+import {getChatMessages, sendMessage, sendMessageWithFiles} from "../../services/chatAPI.js";
 
 // Компонент модального окна для просмотра изображений
 const ImageModal = ({ isOpen, image, onClose }) => {
@@ -469,12 +470,13 @@ const ChatPage = () => {
     const { chatId } = useParams();
     const [ chat, setChat ] = useState({});
     const location = useLocation();
+    const { chatType } = location.state || '';
+    const { title } = location.state || 'ТоварищБот';
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [attachmentMenu, setAttachmentMenu] = useState(false);
-    const [chatTitle, setChatTitle] = useState('ТоварищБот');
     const [attachedFiles, setAttachedFiles] = useState([]);
     const [isDragOver, setIsDragOver] = useState(false);
     const [dragCounter, setDragCounter] = useState(0);
@@ -489,9 +491,47 @@ const ChatPage = () => {
     const [recordTime, setRecordTime] = useState(0); // время записи в секундах
     const recordIntervalRef = useRef(null);
 
-    // const { notifications, showError, showSuccess, showWarning, removeNotification } = useNotifications();
+    useEffect(() => {
+        if (location.state) {
+            const { initialMessage, isToolDescription, isRegularMessage } = location.state;
 
 
+            if (initialMessage) {
+                if (isToolDescription) {
+                    const botMessage = {
+                        id: 1,
+                        role: 'assistant',
+                        content: initialMessage,
+                        timestamp: new Date(),
+                        isToolDescription: true
+                    };
+                    setMessages([botMessage]);
+                } else if (isRegularMessage) {
+                    handleInitialMessage(initialMessage);
+                } else {
+                    const userMessage = {
+                        id: 1,
+                        role: 'user',
+                        content: initialMessage,
+                        timestamp: new Date()
+                    };
+                    setMessages([userMessage]);
+
+                    setTimeout(() => {
+                        const aiResponse = {
+                            id: 2,
+                            role: 'assistant',
+                            content: 'Отлично! Давайте начнём работу. Расскажите подробнее, с чем именно вам нужна помощь?',
+                            timestamp: new Date()
+                        };
+                        setMessages(prev => [...prev, aiResponse]);
+                    }, 1000);
+                }
+            } else {
+                loadMessages()
+            }
+        }
+    }, [location.state]);
 
     const startRecording = async () => {
         try {
@@ -540,73 +580,32 @@ const ChatPage = () => {
         }, 100);
     };
 
-    useEffect(() => {
-        const loadChat = async () => {
-            try {
-                setIsLoading(true);
+    const loadMessages = async () => {
+        try {
+            setIsLoading(true);
 
-                // В реальном приложении здесь будет API запрос:
-                // const response = await fetch(`/api/chat/${chatId}/messages`);
-                // const dbMessages = await response.json();
+            // В реальном приложении здесь будет API запрос:
+            const response = await getChatMessages(chatId);
+            const dbMessages = response.data;
 
-                // Пока используем mock данные:
-                const chatAbout = {
-                    "chat_id": "c0226f0a-e2ea-4588-99ee-6c6132f95510",
-                    "user_id": "1",
-                    "type": "make_notes",
-                    "title": "Сделать конспект",
-                    "messages_count": 0,
-                    "tokens_used": 0,
-                    "created_at": "2025-09-07 14:00:35.769952",
-                    "updated_at": "2025-09-07 11:00:35"
-                };
-
-                setChat(chatAbout);
-                // const welcomeMsg = getWelcomeMessage(chatAbout.type);
-                // setMessages([welcomeMsg]);
-            } catch (error) {
-                console.error('Ошибка загрузки сообщений:', error);
-            } finally {
-                setIsLoading(false);
+            if (!response.success) {
+                console.error("Ошибка API:", response.error);
+                setMessages([getWelcomeMessage()]);
+                return;
             }
-        };
 
-        if (chatId) {
-            loadChat();
-        }
-    }, [chatId]);
-
-
-    useEffect(() => {
-        const loadMessages = async () => {
-            try {
-                setIsLoading(true);
-
-                // В реальном приложении здесь будет API запрос:
-                // const response = await fetch(`/api/chat/${chatId}/messages`);
-                // const dbMessages = await response.json();
-
-                // Пока используем mock данные:
-                const dbMessages = getChatMessages(chatId);
-                console.log("db:", dbMessages);
-
-                if (dbMessages.length === 0) {
-                    const welcomeMsg = getWelcomeMessage(chat.type);
-                    setMessages([welcomeMsg]);
-                } else {
-                    setMessages(dbMessages);
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки сообщений:', error);
-            } finally {
-                setIsLoading(false);
+            if (dbMessages.length === 0) {
+                const welcomeMsg = getWelcomeMessage();
+                setMessages([welcomeMsg]);
+            } else {
+                setMessages(dbMessages);
             }
-        };
-
-        if (chatId) {
-            loadMessages();
+        } catch (error) {
+            console.error('Ошибка загрузки сообщений:', error);
+        } finally {
+            setIsLoading(false);
         }
-    }, [chatId]);
+    }
 
     useEffect(() => {
         scrollToBottom();
@@ -655,49 +654,6 @@ const ChatPage = () => {
         document.addEventListener('paste', handlePaste);
         return () => document.removeEventListener('paste', handlePaste);
     }, []);
-
-    useEffect(() => {
-        if (location.state) {
-            const { initialMessage, toolTitle, isToolDescription, isRegularMessage } = location.state;
-
-            if (toolTitle) {
-                setChatTitle(toolTitle);
-            }
-
-            if (initialMessage) {
-                if (isToolDescription) {
-                    const botMessage = {
-                        id: 1,
-                        role: 'assistant',
-                        content: initialMessage,
-                        timestamp: new Date(),
-                        isToolDescription: true
-                    };
-                    setMessages([botMessage]);
-                } else if (isRegularMessage) {
-                    handleInitialMessage(initialMessage);
-                } else {
-                    const userMessage = {
-                        id: 1,
-                        role: 'user',
-                        content: initialMessage,
-                        timestamp: new Date()
-                    };
-                    setMessages([userMessage]);
-
-                    setTimeout(() => {
-                        const aiResponse = {
-                            id: 2,
-                            role: 'assistant',
-                            content: 'Отлично! Давайте начнём работу. Расскажите подробнее, с чем именно вам нужна помощь?',
-                            timestamp: new Date()
-                        };
-                        setMessages(prev => [...prev, aiResponse]);
-                    }, 1000);
-                }
-            }
-        }
-    }, [location.state]);
 
     const handleInitialMessage = async (message) => {
         const userMessage = {
@@ -777,65 +733,88 @@ const ChatPage = () => {
     };
 
     const handleSendMessage = async () => {
-        // ИСПРАВЛЕНО: используем inputValue вместо messageInput
         if (!inputValue.trim() && attachedFiles.length === 0) return;
 
-        const userMessage = inputValue.trim();
-        setInputValue(''); // ИСПРАВЛЕНО: очищаем inputValue
-        setIsLoading(true); // Или setIsTyping(true) в зависимости от того, какая переменная используется
+
+        const text = inputValue.trim();
 
         try {
-            // Добавляем сообщение пользователя в список
-            const userMsg = {
-                id: Date.now(),
+            const optimisticMsg = {
                 role: 'user',
-                content: userMessage,
-                timestamp: new Date(),
-                files: attachedFiles.length > 0 ? [...attachedFiles] : undefined
+                content: text,
+                timestamp: new Date().toISOString(),
+                files: attachedFiles.length > 0 ? [...attachedFiles] : undefined,
+                status: 'sending'
             };
 
-            setMessages(prev => [...prev, userMsg]);
+            setMessages(prev => [...prev, optimisticMsg]);
+            setInputValue('');
+            setIsLoading(true);
 
-            // НОВОЕ: пробуем отправить через новый бэкенд
-            const sendResult = await sendMessageSafe(userMessage, attachedFiles, chatId);
+            try {
+                if (attachedFiles.length === 0) {
+                    const sendResult = await sendMessage(text, chatId, chatType);
 
-            if (sendResult.success) {
-                console.log('✅ Message sent via backend:', sendResult.data);
+                    if (sendResult.success){
+                        const res = sendResult.data;
 
-                // Если успешно, получаем ответ ИИ
-                const aiResult = await getAIResponseSafe(userMessage, chatId, {
-                    tool_type: currentChatType || 'general',
-                    files_count: attachedFiles.length
-                });
-
-                if (aiResult.success) {
-                    console.log('🤖 AI response received:', aiResult.data);
-
-                    // Добавляем ответ ИИ
-                    const aiResponse = {
-                        id: Date.now() + 1,
-                        role: 'assistant',
-                        content: aiResult.data.response || aiResult.data.message,
-                        timestamp: new Date()
-                    };
-
-                    setMessages(prev => [...prev, aiResponse]);
+                        setMessages(prev => prev.map(m => m.id === res.message_id
+                            ? { ...m, id: res.message_id ?? m.id, status: 'sent', timestamp: res.timestamp ?? m.timestamp }
+                            : m
+                        ));
+                    }
+                } else {
+                    const sendResult = await sendMessageWithFiles(text, optimisticMsg.files, chatId, chatType)
                 }
-            } else {
-                console.warn('⚠️ Backend failed, using fallback');
 
-                // FALLBACK: используем старую логику
-                const aiResponse = await getAIResponse(userMessage, attachedFiles);
-
-                const assistantMsg = {
-                    id: Date.now() + 1,
+            } catch (error) {
+                console.error('💬 Chat error:', error);
+                setMessages(prev => [...prev, {
+                    id: `err-${Date.now()}`,
                     role: 'assistant',
-                    content: aiResponse,
-                    timestamp: new Date()
-                };
+                    content: 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте ещё раз.' }]);
 
-                setMessages(prev => [...prev, assistantMsg]);
+            } finally {
+                setIsLoading(false);
             }
+
+            // if (sendResult.success) {
+            //     console.log('✅ Message sent via backend:', sendResult.data);
+            //
+            //     // Если успешно, получаем ответ ИИ
+            //     const aiResult = await getAIResponseSafe(userMessage, chatId, {
+            //         tool_type: currentChatType || 'general',
+            //         files_count: attachedFiles.length
+            //     });
+            //
+            //     if (aiResult.success) {
+            //         console.log('🤖 AI response received:', aiResult.data);
+            //
+            //         // Добавляем ответ ИИ
+            //         const aiResponse = {
+            //             id: Date.now() + 1,
+            //             role: 'assistant',
+            //             content: aiResult.data.response || aiResult.data.message,
+            //             timestamp: new Date()
+            //         };
+            //
+            //         setMessages(prev => [...prev, aiResponse]);
+            //     }
+            // } else {
+            //     console.warn('⚠️ Backend failed, using fallback');
+            //
+            //     // FALLBACK: используем старую логику
+            //     const aiResponse = await getAIResponse(userMessage, attachedFiles);
+            //
+            //     const assistantMsg = {
+            //         id: Date.now() + 1,
+            //         role: 'assistant',
+            //         content: aiResponse,
+            //         timestamp: new Date()
+            //     };
+            //
+            //     setMessages(prev => [...prev, assistantMsg]);
+            // }
 
             // Очищаем файлы
             setAttachedFiles([]);
@@ -1337,7 +1316,7 @@ const ChatPage = () => {
 Расскажите, для чего нужны идеи, и устроим мозговой штурм!`
         },
 
-        "make_excuse": {
+        "excuse": {
             title: "Придумать отмазку",
             description: "Помощник для создания правдоподобных оправданий",
             welcomeMessage: `Привет! Я помогаю придумывать креативные, но безобидные оправдания.
@@ -1351,7 +1330,7 @@ const ChatPage = () => {
 В какой ситуации нужна помощь с объяснением?`
         },
 
-        "image_generation": {
+        "image": {
             title: "Создание изображений",
             description: "Помощник для генерации изображений через ИИ",
             welcomeMessage: `Привет! Я создаю изображения по вашим описаниям.
@@ -1367,7 +1346,7 @@ const ChatPage = () => {
         }
     };
 
-    const getWelcomeMessage = (chatType) => {
+    const getWelcomeMessage = () => {
         const typeData = CHAT_TYPES_DESCRIPTIONS[chatType];
         if (typeData) {
             return {
@@ -1388,10 +1367,10 @@ const ChatPage = () => {
         };
     };
 
-    const getChatMessages = (chatId) => {
-        console.log(MOCK_CHAT_MESSAGES[chatId])
-        return MOCK_CHAT_MESSAGES[chatId] || [];
-    };
+    // const getChatMessages = (chatId) => {
+    //     console.log(MOCK_CHAT_MESSAGES[chatId])
+    //     return MOCK_CHAT_MESSAGES[chatId] || [];
+    // };
 
     const formatDateTime = (dateString) => {
         if (!dateString) return '';
@@ -1440,7 +1419,7 @@ const ChatPage = () => {
                     <ArrowLeft className="icon" />
                 </motion.button>
 
-                <h1 className="chat-title">{chat.title}</h1>
+                <h1 className="chat-title">{title}</h1>
             </motion.div>
 
             {/* Область сообщений */}

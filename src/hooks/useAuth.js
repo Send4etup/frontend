@@ -39,6 +39,20 @@ export const useAuth = () => {
         }
     }, []);
 
+    const getTelegramId = useCallback( () => {
+        try {
+
+            const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id;
+            return {
+                telegram_id: telegramId,
+            };
+
+        } catch (error) {
+            console.error('❌ Ошибка получения данных Telegram:', error);
+            return null;
+        }
+    }, [])
+
     /**
      * Выполнение авторизации на сервере
      */
@@ -60,7 +74,7 @@ export const useAuth = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(userData)
+                body: JSON.stringify({ telegram_id: userData.telegram_id})
             });
 
             if (!response.ok) {
@@ -69,21 +83,26 @@ export const useAuth = () => {
             }
 
             const authResult = await response.json();
-            console.log('✅ Успешная авторизация:', authResult);
+            const backend_token = authResult.access_token;
+            const telegram_hash = window.Telegram.WebApp.initDataUnsafe.hash;
+
+            console.log('✅ Успешная авторизация:', authResult, ', hash: ', telegram_hash);
 
             // Сохраняем данные в localStorage
             const authData = {
-                token: authResult.token,
+                token: authResult.access_token,
                 user: authResult.user,
                 timestamp: Date.now()
             };
 
+            localStorage.setItem('backend_token', backend_token);
             localStorage.setItem('telegram_auth', JSON.stringify(authData));
+            localStorage.setItem('telegram_hash', JSON.stringify(telegram_hash));
 
             // Обновляем состояние
             setToken(authResult.token);
             setUser({
-                telegram: window.Telegram.WebApp.initDataUnsafe.user,
+                telegram: window.Telegram.WebApp.initDataUnsafe,
                 db: authResult.user
             });
             setIsAuthenticated(true);
@@ -106,33 +125,40 @@ export const useAuth = () => {
      */
     const restoreSession = useCallback(() => {
         try {
+
+            const telegram_hash = window.Telegram.WebApp.initDataUnsafe.hash;
+            const local_storage_hash = localStorage.getItem('telegram_hash');
             const savedAuth = localStorage.getItem('telegram_auth');
-            if (!savedAuth) {
-                return false;
-            }
 
-            const authData = JSON.parse(savedAuth);
+            if (telegram_hash === local_storage_hash) {
+                const sessionAge = Date.now() - local_storage_hash.timestamp;
+                const maxAge = 24 * 60 * 60 * 1000; // 24 часа
 
-            // Проверяем валидность сессии (24 часа)
-            const sessionAge = Date.now() - authData.timestamp;
-            const maxAge = 24 * 60 * 60 * 1000; // 24 часа
+                if (sessionAge > maxAge) {
+                    console.log('⏰ Сессия истекла, требуется повторная авторизация');
+                    localStorage.removeItem('telegram_auth');
+                    localStorage.removeItem('telegram_hash');
 
-            if (sessionAge > maxAge) {
-                console.log('⏰ Сессия истекла, требуется повторная авторизация');
+                    return false;
+                }
+
+                const authData = JSON.parse(savedAuth);
+
+                // Восстанавливаем данные
+                setToken(authData.token);
+                setUser({
+                    telegram: window.Telegram.WebApp.initDataUnsafe.user,
+                    db: authData.user
+                });
+                setIsAuthenticated(true);
+
+                console.log('✅ Сессия восстановлена:', authData.user);
+                return true;
+            } else {
                 localStorage.removeItem('telegram_auth');
+                localStorage.removeItem('telegram_hash');
                 return false;
             }
-
-            // Восстанавливаем данные
-            setToken(authData.token);
-            setUser({
-                telegram: window.Telegram.WebApp.initDataUnsafe.user,
-                db: authData.user
-            });
-            setIsAuthenticated(true);
-
-            console.log('✅ Сессия восстановлена:', authData.user);
-            return true;
 
         } catch (error) {
             console.error('❌ Ошибка восстановления сессии:', error);
@@ -153,9 +179,10 @@ export const useAuth = () => {
         if (!sessionRestored) {
             // Если сессия не восстановлена, выполняем авторизацию
             const userData = getTelegramUserData();
+            const telegramId  =getTelegramId();
 
-            if (userData) {
-                await authenticateUser(userData);
+            if (telegramId) {
+                await authenticateUser(telegramId);
             } else {
                 setError('Не удалось получить данные пользователя');
                 setIsLoading(false);

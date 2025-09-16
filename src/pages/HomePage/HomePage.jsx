@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Camera, Headphones, Image, FileText, Brain, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
+import {createChat, getUserChats} from "../../services/chatAPI.js";
 
 // =====================================================
 // ВСТРОЕННЫЕ КОМПОНЕНТЫ (вместо импортов)
@@ -53,6 +54,8 @@ const SimpleLoadingSpinner = ({ size = 'medium' }) => {
 
 // Простой RecentChats компонент
 const SimpleRecentChats = ({ chats, onChatClick }) => {
+    const navigate = useNavigate();
+
     if (!chats || chats.length === 0) {
         return (
             <div className="empty-chats">
@@ -80,7 +83,15 @@ const SimpleRecentChats = ({ chats, onChatClick }) => {
                 <div
                     key={chat.chat_id}
                     className="chat-item"
-                    onClick={() => onChatClick(chat.chat_id)}
+                    onClick={() => {
+                        navigate(`/chat/${chat.chat_id}`, {
+                            state: {
+                                chatType: chat.type,
+                                title: chat.title,
+                            }
+                        });
+                    }}
+                    // onClick={() => onChatClick(chat.chat_id)}
                     style={{
                         padding: '16px',
                         backgroundColor: '#1a1a1a',
@@ -121,7 +132,7 @@ const SimpleRecentChats = ({ chats, onChatClick }) => {
                                 lineHeight: '1.4',
                                 textAlign: 'left',
                             }}>
-                                {chat.lastMessage}
+                                {chat.last_message}
                             </p>
                         </div>
                         <span style={{
@@ -142,81 +153,81 @@ const SimpleRecentChats = ({ chats, onChatClick }) => {
 // МОКОВЫЕ ДАННЫЕ
 // =====================================================
 
-const MOCK_CHAT_HISTORY = [
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Сделать конспект',
-        lastMessage: 'Решаем квадратные уравнения',
-        updated_at: '2025-09-07 11:00:35',
-        type: 'make_notes'
-    },
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Сделать конспект',
-        lastMessage: 'Создайте картинку кота в космосе',
-        updated_at: '2025-09-07 11:00:35',
-        type: 'image'
-    },
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Сделать конспект',
-        lastMessage: 'Как сделать цикл for?',
-        updated_at: '2025-09-07 11:00:35',
-        type: 'coding'
-    }
-];
-
-const ADDITIONAL_MOCK_CHATS = [
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Анализ стихотворения',
-        lastMessage: 'Разбираем "Евгений Онегин" Пушкина',
-        updated_at: '2022-09-07 11:00:35',
-        type: 'literature'
-    },
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Помощь с физикой',
-        lastMessage: 'Законы Ньютона и их применение',
-        updated_at: '2025-09-07 11:00:35',
-        type: 'physics'
-    },
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Подготовка к ЕГЭ',
-        lastMessage: 'Решаем задачи по химии',
-        updated_at: '2025-09-07 11:00:35',
-        type: 'exam'
-    },
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Дизайн презентации',
-        lastMessage: 'Создаем крутые слайды для доклада',
-        updated_at: '2025-09-07 11:00:35',
-        type: 'design'
-    },
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Изучение английского',
-        lastMessage: 'Неправильные глаголы и времена',
-        updated_at: '2025-09-07 11:00:35',
-        type: 'language'
-    },
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Изучение английского',
-        lastMessage: 'Неправильные глаголы и времена',
-        updated_at: '2025-09-07 11:00:35',
-        type: 'language'
-    },
-    {
-        chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
-        title: 'Изучение английского',
-        lastMessage: 'Неправильные глаголы и времена',
-        updated_at: '2025-09-07 11:00:35',
-        type: 'language'
-    }
-];
+// const MOCK_CHAT_HISTORY = [
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Сделать конспект',
+//         lastMessage: 'Решаем квадратные уравнения',
+//         updated_at: '2025-09-07 11:00:35',
+//         type: 'make_notes'
+//     },
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Сделать конспект',
+//         lastMessage: 'Создайте картинку кота в космосе',
+//         updated_at: '2025-09-07 11:00:35',
+//         type: 'image'
+//     },
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Сделать конспект',
+//         lastMessage: 'Как сделать цикл for?',
+//         updated_at: '2025-09-07 11:00:35',
+//         type: 'coding'
+//     }
+// ];
+//
+// const ADDITIONAL_MOCK_CHATS = [
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Анализ стихотворения',
+//         lastMessage: 'Разбираем "Евгений Онегин" Пушкина',
+//         updated_at: '2022-09-07 11:00:35',
+//         type: 'literature'
+//     },
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Помощь с физикой',
+//         lastMessage: 'Законы Ньютона и их применение',
+//         updated_at: '2025-09-07 11:00:35',
+//         type: 'physics'
+//     },
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Подготовка к ЕГЭ',
+//         lastMessage: 'Решаем задачи по химии',
+//         updated_at: '2025-09-07 11:00:35',
+//         type: 'exam'
+//     },
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Дизайн презентации',
+//         lastMessage: 'Создаем крутые слайды для доклада',
+//         updated_at: '2025-09-07 11:00:35',
+//         type: 'design'
+//     },
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Изучение английского',
+//         lastMessage: 'Неправильные глаголы и времена',
+//         updated_at: '2025-09-07 11:00:35',
+//         type: 'language'
+//     },
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Изучение английского',
+//         lastMessage: 'Неправильные глаголы и времена',
+//         updated_at: '2025-09-07 11:00:35',
+//         type: 'language'
+//     },
+//     {
+//         chat_id: 'c0226f0a-e2ea-4588-99ee-6c6132f95510',
+//         title: 'Изучение английского',
+//         lastMessage: 'Неправильные глаголы и времена',
+//         updated_at: '2025-09-07 11:00:35',
+//         type: 'language'
+//     }
+// ];
 
 const DAILY_QUOTES = [
     "Образование — самое мощное оружие, которое можно использовать, чтобы изменить мир",
@@ -233,7 +244,7 @@ const DAILY_QUOTES = [
 const HomePage = ({ user: currentUser }) => {
     const navigate = useNavigate();
     const [inputValue, setInputValue] = useState('');
-    const [chatHistory, setChatHistory] = useState(MOCK_CHAT_HISTORY);
+    const [chatHistory, setChatHistory] = useState([]);
     const [allChatsLoaded, setAllChatsLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -289,13 +300,24 @@ const HomePage = ({ user: currentUser }) => {
         setError(null);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            setChatHistory(MOCK_CHAT_HISTORY);
-            console.log('Mock chat history loaded');
+            // Ждём данные из getUserChats
+            const dbChatHistory = await getUserChats();
+
+            // Передаём уже готовый массив/объект в setChatHistory
+            if (dbChatHistory.success) {
+                setChatHistory(dbChatHistory.data);
+
+                console.log('Chat history loaded:', dbChatHistory);
+            } else {
+                console.error('Failed to load chat history:', error);
+                setError('Не удалось загрузить историю чатов');
+                setChatHistory([]); // сброс в пустой массив
+            }
+
         } catch (error) {
             console.error('Failed to load chat history:', error);
             setError('Не удалось загрузить историю чатов');
-            setChatHistory([]);
+            setChatHistory([]); // сброс в пустой массив
         } finally {
             setIsLoading(false);
         }
@@ -333,17 +355,26 @@ const HomePage = ({ user: currentUser }) => {
             setError(null);
             console.log('Mock: sending quick message:', inputValue);
 
-            const mockChatId = `chat_${Date.now()}`;
+            const ChatCreateInfo = createChat('Обычный чат', 'general');
+
             const messageToSend = inputValue.trim();
 
             setInputValue('');
 
-            navigate(`/chat/${mockChatId}`, {
+            // navigate(`/chat/${chat_id}`, {
+            //     state: {
+            //         initialMessage: messageToSend,
+            //     }
+            // });
+
+            navigate(`/chat/${ChatCreateInfo.chat_id}`, {
                 state: {
+                    chatType: 'general',
+                    title: 'Общий чат',
                     initialMessage: messageToSend,
-                    chatType: 'general'
                 }
             });
+
 
         } catch (error) {
             console.error('Failed to send quick message:', error);
@@ -357,14 +388,26 @@ const HomePage = ({ user: currentUser }) => {
     const handleQuickAction = async (actionType) => {
         try {
             setError(null);
+
             const actionConfig = quickActions.find(action => action.action === actionType);
             if (!actionConfig) return;
 
+            const titles = {
+                'image': 'Создать изображение',
+                'coding': 'Написать код',
+                'brainstorm': 'Обдумать тему',
+                'excuse': 'Придумать отмазку',
+            }
+
+            const title = titles[actionType] ?? 'Обычный чат';
+
+
+            const ChatCreateInfo = createChat(title, actionType);
+
+
             console.log('Mock: creating tool chat:', actionType);
 
-            const mockChatId = `${actionType}_${Date.now()}`;
-
-            navigate(`/chat/${mockChatId}`, {
+            navigate(`/chat/${ChatCreateInfo.chat_id}`, {
                 state: {
                     chatType: actionType,
                     title: actionConfig.label
@@ -446,6 +489,8 @@ const HomePage = ({ user: currentUser }) => {
                         </p>
                         <p className="quote-author">
                             — Привет, {currentUser.telegram.username}!
+
+                            {currentUser.telegram.hash}
                         </p>
                     </div>
                 </div>
@@ -589,15 +634,6 @@ const HomePage = ({ user: currentUser }) => {
                                 chats={chatHistory}
                                 onChatClick={(chatId) => navigate(`/chat/${chatId}`)}
                             />
-
-                            {/* Кнопка загрузки дополнительных чатов */}
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                marginTop: '15px'
-                            }}>
-                                {renderLoadMoreButton()}
-                            </div>
                         </>
                     )}
                 </div>
