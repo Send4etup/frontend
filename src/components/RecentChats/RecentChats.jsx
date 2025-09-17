@@ -1,87 +1,63 @@
-// src/components/RecentChats/RecentChats.jsx
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { MessageCircle, Clock } from 'lucide-react';
+// src/components/RecentChats/RecentChats.jsx - Обновленная версия с кнопкой "Посмотреть все"
+
+import React, { useState, useEffect } from 'react';
+import { MessageCircle, ChevronRight, History } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import './RecentChats.css';
+import { getUserChats } from '../../services/chatAPI.js';
+import { getAgentByAction } from '../../utils/aiAgentsUtils.js';
 
 const RecentChats = ({ onChatClick }) => {
-    const [visibleCount, setVisibleCount] = useState(3);
-
-    // Расширенные моковые данные для демонстрации
-    const allChats = [
-        {
-            id: 1,
-            title: 'Что такое квадратный корень',
-            lastMessage: 'Арифметический квадратный корень из неотрицательного числа a — это неотрицательное число, квадрат которого равен a.',
-            timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 минут назад
-            subject: 'математика'
-        },
-        {
-            id: 2,
-            title: 'Помощь с сочинением',
-            lastMessage: 'Давайте разберем структуру сочинения по литературе...',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 часа назад
-            subject: 'русский язык'
-        },
-        {
-            id: 3,
-            title: 'Разбор задачи по физике',
-            lastMessage: 'Для решения этой задачи нужно использовать закон сохранения энергии...',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 день назад
-            subject: 'физика'
-        },
-        {
-            id: 4,
-            title: 'Создание изображения кота',
-            lastMessage: 'Создам для тебя милого котика в мультяшном стиле...',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 дня назад
-            subject: 'творчество'
-        },
-        {
-            id: 5,
-            title: 'Программирование на Python',
-            lastMessage: 'Разберем основы циклов и условных операторов...',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 дня назад
-            subject: 'программирование'
-        },
-        {
-            id: 6,
-            title: 'Подготовка к экзамену по химии',
-            lastMessage: 'Повторим основные химические реакции и их типы...',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), // 4 дня назад
-            subject: 'химия'
-        },
-        {
-            id: 7,
-            title: 'Мозговой штурм для проекта',
-            lastMessage: 'Придумаем креативные идеи для твоего YouTube канала...',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), // 5 дней назад
-            subject: 'творчество'
-        },
-        {
-            id: 8,
-            title: 'Разбор ошибок в домашке',
-            lastMessage: 'Найдем и исправим ошибки в твоем решении...',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6), // 6 дней назад
-            subject: 'математика'
-        },
-        {
-            id: 9,
-            title: 'Написание эссе по истории',
-            lastMessage: 'Структурируем твои мысли по теме Великой Отечественной войны...',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7), // 7 дней назад
-            subject: 'история'
-        },
-        {
-            id: 10,
-            title: 'Поддержка перед экзаменом',
-            lastMessage: 'Ты отлично справишься! Вот несколько техник для снятия стресса...',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8), // 8 дней назад
-            subject: 'поддержка'
+    const navigate = useNavigate();
+    const [allChats, setAllChats] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const getChatIcon = (chatType) => {
+        const agentConfig = getAgentByAction(chatType);
+        if (agentConfig && agentConfig.icon) {
+            const IconComponent = agentConfig.icon;
+            return {
+                icon: IconComponent,
+                color: agentConfig.iconColor
+            };
         }
-    ];
+        // Fallback если не найдена
+        return {
+            icon: MessageCircle,
+            color: '#43ff65'
+        };
+    };
 
-    const formatTime = (date) => {
+    // Загружаем только первые 3 чата для главной страницы
+    useEffect(() => {
+        loadRecentChats();
+    }, []);
+
+    const loadRecentChats = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await getUserChats(3); // Только 3 последних чата
+
+            if (response.success) {
+                setAllChats(response.data);
+            } else {
+                setError('Не удалось загрузить чаты');
+                setAllChats([]);
+            }
+        } catch (err) {
+            console.error('Failed to load recent chats:', err);
+            setError('Произошла ошибка при загрузке чатов');
+            setAllChats([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatTime = (dateString) => {
+        const date = new Date(dateString);
         const now = new Date();
         const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
 
@@ -92,103 +68,169 @@ const RecentChats = ({ onChatClick }) => {
             return `${diffInHours} ч назад`;
         } else {
             const diffInDays = Math.floor(diffInHours / 24);
-            return `${diffInDays} д назад`;
+            if (diffInDays < 7) {
+                return `${diffInDays} д назад`;
+            } else {
+                return date.toLocaleDateString('ru-RU');
+            }
         }
     };
 
-    const getSubjectColor = (subject) => {
-        switch(subject) {
-            case 'математика': return '#ef4444';
-            case 'русский язык': return '#22c55e';
-            case 'физика': return '#3b82f6';
-            case 'биология': return '#10b981';
-            case 'химия': return '#f59e0b';
-            case 'история': return '#8b5cf6';
-            case 'программирование': return '#06b6d4';
-            case 'творчество': return '#ec4899';
-            case 'поддержка': return '#f97316';
-            default: return '#43ff65';
-        }
+    const getTypeColor = (type) => {
+        const typeColors = {
+            'general': '#43ff65',
+            'coding': '#22c55e',
+            'brainstorm': '#3b82f6',
+            'images': '#ec4899',
+            'excuses': '#f59e0b',
+            'study_tools': '#8b5cf6'
+        };
+        return typeColors[type] || '#43ff65';
+    };
+
+    const getTypeLabel = (type) => {
+        const typeLabels = {
+            'general': 'Общий',
+            'coding': 'Кодинг',
+            'brainstorm': 'Брейншторм',
+            'images': 'Изображения',
+            'excuses': 'Отмазки',
+            'study_tools': 'Учеба'
+        };
+        return typeLabels[type] || 'Чат';
     };
 
     const handleChatClick = (chatId) => {
         if (onChatClick) {
             onChatClick(chatId);
+        } else {
+            navigate(`/chat/${chatId}`);
         }
     };
 
-    const handleShowMore = () => {
-        setVisibleCount(prev => Math.min(prev + 5, allChats.length));
+    const handleViewAllChats = () => {
+        navigate('/chats-history');
     };
 
-    const visibleChats = allChats.slice(0, visibleCount);
-    const hasMoreChats = visibleCount < allChats.length;
+    if (loading) {
+        return (
+            <div className="recent-chats">
+                <div className="recent-chats-header">
+                    <h3 className="recent-chats-title">Последние чаты</h3>
+                </div>
+                <div className="chats-loading">
+                    <div className="loading-skeleton" />
+                    <div className="loading-skeleton" />
+                    <div className="loading-skeleton" />
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="recent-chats">
+                <div className="recent-chats-header">
+                    <h3 className="recent-chats-title">Последние чаты</h3>
+                </div>
+                <div className="chats-error">
+                    <p>Не удалось загрузить чаты</p>
+                    <button onClick={loadRecentChats} className="retry-btn">
+                        Попробовать снова
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (allChats.length === 0) {
         return (
-            <div className="recent-chats-empty">
-                <MessageCircle className="empty-icon" />
-                <p>Пока нет истории чатов</p>
-                <span>Начните общение, задав вопрос выше</span>
+            <div className="recent-chats">
+                <div className="recent-chats-header">
+                    <h3 className="recent-chats-title">Последние чаты</h3>
+                </div>
+                <div className="recent-chats-empty">
+                    <MessageCircle className="empty-icon" />
+                    <p>Пока нет истории чатов</p>
+                    <span>Начните общение, задав вопрос выше</span>
+                </div>
             </div>
         );
     }
 
     return (
         <div className="recent-chats">
-            <h3 className="recent-chats-title">Последние чаты</h3>
-            <div className="chats-list">
-                {visibleChats.map((chat, index) => (
-                    <motion.div
-                        key={chat.id}
-                        className="chat-item"
-                        onClick={() => handleChatClick(chat.id)}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                    >
-                        <div className="chat-icon">
-                            <MessageCircle className="icon" />
-                        </div>
-
-                        <div className="chat-content">
-                            <div className="chat-title-header">
-                                <h4 className="chat-title">{chat.title}</h4>
-                                <div className="chat-meta">
-                                    <span
-                                        className="chat-subject"
-                                        style={{ backgroundColor: getSubjectColor(chat.subject) }}
-                                    >
-                                        {chat.subject}
-                                    </span>
-                                    <div className="chat-time">
-                                        <Clock className="time-icon" />
-                                        <span>{formatTime(chat.timestamp)}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <p className="chat-preview">{chat.lastMessage}</p>
-                        </div>
-                    </motion.div>
-                ))}
+            <div className="recent-chats-headers">
+                <h3 className="recent-chats-title">Последние чаты</h3>
+                <div
+                    className="view-all-btns"
+                    onClick={handleViewAllChats}
+                    title="Посмотреть все чаты"
+                >
+                    <History className="view-all-icon" />
+                    <p>Посмотреть все</p>
+                    {/*<ChevronRight className="chevron-icon" />*/}
+                </div>
             </div>
 
-            {hasMoreChats && (
-                <motion.button
-                    className="view-all-btn"
-                    onClick={handleShowMore}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                >
-                    Посмотреть все ({allChats.length - visibleCount} ещё)
-                </motion.button>
-            )}
+            <div className="chats-list">
+                <AnimatePresence mode="popLayout">
+                    {allChats.map((chat, index) => {
+                        const { icon: IconComponent, color } = getChatIcon(chat.type);
+
+                        return (
+                            <motion.div
+                                key={chat.chat_id}
+                                className="chat-item"
+                                onClick={() => {
+                                    navigate(`/chat/${chat.chat_id}`, {
+                                        state: {
+                                            chatType: chat.type,
+                                            title: chat.title,
+                                        }
+                                    });
+                                }}
+                                initial={{opacity: 0, y: 20}}
+                                animate={{opacity: 1, y: 0}}
+                                exit={{opacity: 0, y: -10}}
+                                transition={{delay: index * 0.05}}
+                                whileHover={{scale: 1.02}}
+                                whileTap={{scale: 0.98}}
+                            >
+                                {/* ✅ ИКОНКА ИЗ JSON С ЦВЕТОМ */}
+                                <div className="chat-icons">
+                                    <IconComponent
+                                        className="icon"
+                                        style={{ color: color }}
+                                    />
+                                </div>
+
+                                <div className="chat-content">
+                                    <div className="card-chat-title-header">
+                                        <h4 className="chat-title">{chat.title}</h4>
+                                    </div>
+
+                                    <div className="card-last-message">
+                                        {chat.last_message && (
+                                            <p className="last-message">
+                                                {chat.last_message.length > 60
+                                                    ? chat.last_message.substring(0, 60) + '...'
+                                                    : chat.last_message}
+                                            </p>
+                                        )}
+                                    </div>
+
+
+                                </div>
+
+                                <div className="chat-arrow">
+                                    <ChevronRight className="arrow-icon"/>
+                                </div>
+                            </motion.div>
+                        )
+                    })}
+                </AnimatePresence>
+            </div>
         </div>
     );
 };

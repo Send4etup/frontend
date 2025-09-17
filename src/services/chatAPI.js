@@ -193,14 +193,19 @@ export const getAIResponse = async (message, chatId, options = {}) => {
 };
 
 /**
- * Получение истории чатов пользователя
+ * Получение истории чатов пользователя с поддержкой пагинации
  * @param {number} limit - Количество чатов для получения
+ * @param {number} offset - Смещение для пагинации (необязательно)
  * @returns {Promise<Object>} Список чатов
  */
-export const 
-    getUserChats = async (limit = 10) => {
+export const getUserChats = async (limit = 10, offset = 0) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/chat/history?limit=${limit}`, {
+        let url = `${API_BASE_URL}/chat/history?limit=${limit}`;
+        if (offset > 0) {
+            url += `&offset=${offset}`;
+        }
+
+        const response = await fetch(url, {
             method: 'GET',
             headers: getAuthHeaders()
         });
@@ -256,6 +261,112 @@ export const getChatMessages = async (chatId, limit = 50) => {
 
     } catch (error) {
         console.error('❌ Error getting chat messages:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
+/**
+ * НОВАЯ ФУНКЦИЯ: Обновление названия чата
+ * @param {string} chatId - ID чата
+ * @param {string} newTitle - Новое название чата
+ * @returns {Promise<Object>} Результат обновления
+ */
+export const updateChatTitle = async (chatId, newTitle) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat/${chatId}/title`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                title: newTitle.trim()
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        console.log('✅ Chat title updated successfully:', result);
+        return {
+            success: true,
+            data: result
+        };
+
+    } catch (error) {
+        console.error('❌ Error updating chat title:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
+/**
+ * НОВАЯ ФУНКЦИЯ: Удаление чата
+ * @param {string} chatId - ID чата для удаления
+ * @returns {Promise<Object>} Результат удаления
+ */
+export const deleteChatById = async (chatId) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat/${chatId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        console.log('✅ Chat deleted successfully:', result);
+        return {
+            success: true,
+            data: result
+        };
+
+    } catch (error) {
+        console.error('❌ Error deleting chat:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
+/**
+ * Получение информации о конкретном чате
+ * @param {string} chatId - ID чата
+ * @returns {Promise<Object>} Информация о чате
+ */
+export const getChatInfo = async (chatId) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat/${chatId}`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        const chatInfo = await response.json();
+
+        console.log('ℹ️ Chat info received:', chatInfo);
+        return {
+            success: true,
+            data: chatInfo
+        };
+
+    } catch (error) {
+        console.error('❌ Error getting chat info:', error);
         return {
             success: false,
             error: error.message

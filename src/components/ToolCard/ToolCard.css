@@ -30,7 +30,7 @@
     justify-content: center;
     width: 30px;
     height: 30px;
-    background: #43ff65;
+    /*background: #43ff65;*/
     border-radius: 4px;
     flex-shrink: 0;
     position: relative;
@@ -43,7 +43,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%);
+    /*background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%);*/
     border-radius: 12px;
     pointer-events: none;
 }

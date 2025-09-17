@@ -18,6 +18,7 @@
     background: #111111;
     border-bottom: 1px solid #1f1f1f;
     z-index: 10;
+    gap: 12px;
 }
 
 .chat-page .chat-header {
@@ -859,11 +860,20 @@
     padding: 10px 0;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: start;
 }
 
 .message-actions button {
     margin: 0 3px;
+    border: 0;
+}
+
+.message-actions {
+    display: flex;
+}
+
+.action-btn {
+    border: 1px solid red   ;
 }
 
 .message-bottom-actions .message-time {

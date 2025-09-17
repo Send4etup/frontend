@@ -24,6 +24,7 @@ import { useAuth } from "./hooks/useAuth.js";
 
 // Styles
 import './App.css';
+import ChatHistoryPage from "./pages/ChatHistoryPage/ChatHistoryPage.jsx";
 
 // =====================================================
 // КОМПОНЕНТЫ ДЛЯ ОТОБРАЖЕНИЯ СОСТОЯНИЙ
@@ -328,8 +329,14 @@ function App() {
                                 path="chat/:chatId"
                                 element={<AIChatPage user={userWithMethods} />}
                             />
-
-                            <Route path="*" element={<NotFoundPage />} />
+                            <Route
+                                path="chats-history"
+                                element={<ChatHistoryPage user={user} />}
+                            />
+                            <Route
+                                path="*"
+                               element={<NotFoundPage />}
+                            />
                         </Route>
                     </Routes>
                 </AnimatePresence>

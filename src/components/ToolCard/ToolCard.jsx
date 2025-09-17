@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import './ToolCard.css';
 
-const ToolCard = ({ icon: Icon, title, subtitle, action, onClick }) => {
+const ToolCard = ({ icon: ToolIcon, title, subtitle, action, onClick }) => {
     return (
         <motion.div
             className="tool-card"
@@ -16,7 +16,7 @@ const ToolCard = ({ icon: Icon, title, subtitle, action, onClick }) => {
             transition={{ duration: 0.3 }}
         >
             <div className="tool-icon">
-                <Icon className="icon" />
+                <ToolIcon className="icon" />
             </div>
 
             <div className="tool-content">
