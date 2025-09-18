@@ -505,6 +505,7 @@ const ChatPage = () => {
                     title={title}
                     chatId={chatId}
                     chatType={chatType}
+                    agentPrompt={agentPrompt}
                     onNavigateBack={() => navigate(-1)}
                 />
             </motion.div>

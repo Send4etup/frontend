@@ -136,7 +136,7 @@
 /* Быстрые действия - новый стиль как на изображении */
 .quick-actions {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 25px;
 }

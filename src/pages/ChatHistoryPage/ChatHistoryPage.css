@@ -521,12 +521,12 @@
     background: #333333;
 }
 
-.delete-btn {
+.modal-btn.delete-btn {
     background: #ef4444;
     color: #ffffff;
 }
 
-.delete-btn:hover:not(:disabled) {
+.modal-btn.delete-btn:hover:not(:disabled) {
     background: #dc2626;
 }
 

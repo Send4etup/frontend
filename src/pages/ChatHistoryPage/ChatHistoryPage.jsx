@@ -1,7 +1,7 @@
 // src/pages/ChatHistoryPage/ChatHistoryPage.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, Trash2, Edit3, AlertCircle, X } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Trash2, Edit3, AlertCircle, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './ChatHistoryPage.css';
 import { getUserChats, deleteChatById, updateChatTitle } from '../../services/chatAPI.js';
@@ -11,9 +11,9 @@ import {getAgentByAction} from "../../utils/aiAgentsUtils.js";
 // КОМПОНЕНТ КАРТОЧКИ ЧАТА
 // =====================================================
 
-const ChatItem = ({ chat, onEdit, onDelete, onNavigateToChat, isEditing, onCancelEdit }) => {
+const ChatItem = ({ chat, onEdit, onDelete, onNavigateToChat, isEditing, onCancelEdit, onSaveEdit, isDeleting, isSaving }) => {
     const [editTitle, setEditTitle] = useState(chat.title);
-    const [isDeleting, setIsDeleting] = useState(false);
+    // const [isDeleting, setIsDeleting] = useState(false);
     const editInputRef = useRef(null);
 
 
@@ -35,24 +35,55 @@ const ChatItem = ({ chat, onEdit, onDelete, onNavigateToChat, isEditing, onCance
     const { icon: IconComponent, color } = getChatIcon(chat.type);
 
     useEffect(() => {
+        setEditTitle(chat.title);
+    }, [chat.title]);
+
+    useEffect(() => {
         if (isEditing && editInputRef.current) {
             editInputRef.current.focus();
             editInputRef.current.select();
         }
     }, [isEditing]);
 
+
     const handleEditSubmit = (e) => {
         e.preventDefault();
-        if (editTitle.trim() && editTitle !== chat.title) {
-            onEdit(chat.chat_id, editTitle.trim());
-        } else {
+        const trimmedTitle = editTitle.trim();
+
+        // Валидация
+        if (!trimmedTitle) {
+            onCancelEdit();
+            return;
+        }
+
+        // Если название не изменилось
+        if (trimmedTitle === chat.title) {
+            onCancelEdit();
+            return;
+        }
+
+        // Отправка на сохранение
+        onSaveEdit(chat.chat_id, trimmedTitle);
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            // Восстанавливаем оригинальное название
+            setEditTitle(chat.title);
             onCancelEdit();
         }
     };
 
+    const handleBlur = () => {
+        // Отменяем редактирование только если название не изменилось
+        if (editTitle.trim() === chat.title) {
+            onCancelEdit();
+        }
+    };
+
+
     const handleDelete = () => {
-        setIsDeleting(true);
-        onDelete(chat.chat_id);
+        onDelete(chat);
     };
 
     const formatTime = (dateString) => {
@@ -102,15 +133,15 @@ const ChatItem = ({ chat, onEdit, onDelete, onNavigateToChat, isEditing, onCance
     return (
         <motion.div
             className={`chat-item ${isDeleting ? 'deleting' : ''}`}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: isDeleting ? 0.5 : 1, y: 0 }}
-            exit={{ opacity: 0, x: -100, transition: { duration: 0.2 } }}
-            whileHover={{ scale: isEditing ? 1 : 1.02 }}
-            transition={{ duration: 0.2 }}
+            initial={{opacity: 0, y: 20}}
+            animate={{opacity: isDeleting ? 0.5 : 1, y: 0}}
+            exit={{opacity: 0, x: -100, transition: {duration: 0.2}}}
+            whileHover={{scale: isEditing ? 1 : 1.02}}
+            transition={{duration: 0.2}}
         >
             <div
                 className="chat-main-content"
-                onClick={() => !isEditing && !isDeleting && onNavigateToChat(chat.chat_id)}
+                onClick={() => !isEditing && !isDeleting && onNavigateToChat(chat)}
             >
                 <div className="chat-icons">
                     <IconComponent
@@ -122,16 +153,17 @@ const ChatItem = ({ chat, onEdit, onDelete, onNavigateToChat, isEditing, onCance
                 <div className="chat-content">
                     <div className="chat-title-header">
                         {isEditing ? (
-                            <form onSubmit={handleEditSubmit} className="edit-form">
+                            <form onSubmit={handleEditSubmit} className="edit-form" id={`edit-form-${chat.chat_id}`}>
                                 <input
                                     ref={editInputRef}
                                     type="text"
                                     value={editTitle}
                                     onChange={(e) => setEditTitle(e.target.value)}
-                                    onBlur={() => editTitle === chat.title && onCancelEdit()}
-                                    onKeyDown={(e) => e.key === 'Escape' && onCancelEdit()}
+                                    onBlur={handleBlur}
+                                    onKeyDown={handleKeyDown}
                                     className="edit-input"
                                     maxLength={50}
+                                    disabled={isSaving}
                                 />
                             </form>
                         ) : (
@@ -159,33 +191,49 @@ const ChatItem = ({ chat, onEdit, onDelete, onNavigateToChat, isEditing, onCance
                 </div>
             </div>
 
-            {!isEditing && (
-                <div className="chat-actions">
+            <div className="chat-actions">
+                {isEditing && (
                     <button
                         className="action-btn edit-btn"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(chat.chat_id, chat.title);
-                        }}
-                        disabled={isDeleting}
-                        title="Изменить название"
+                        type="submit"
+                        form={`edit-form-${chat.chat_id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        disabled={isSaving}
+                        title={isSaving ? "Сохраняется..." : "Сохранить название"}
                     >
-                        <Edit3 className="action-icon" />
+                        <Check className="action-icon"/>
                     </button>
+                )}
 
-                    <button
-                        className="action-btn delete-btn"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete();
-                        }}
-                        disabled={isDeleting}
-                        title="Удалить чат"
-                    >
-                        <Trash2 className="action-icon" />
-                    </button>
-                </div>
-            )}
+                {!isEditing && (
+                    <>
+                        <button
+                            className="action-btn edit-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(chat.chat_id);
+                            }}
+                            disabled={isDeleting}
+                            title="Изменить название"
+                        >
+                            <Edit3 className="action-icon"/>
+                        </button>
+
+                        <button
+                            className="action-btn delete-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(chat);
+                            }}
+                            disabled={isDeleting}
+                            title="Удалить чат"
+                        >
+                            <Trash2 className="action-icon"/>
+                        </button>
+                    </>
+                )}
+            </div>
+
         </motion.div>
     );
 };
@@ -194,27 +242,27 @@ const ChatItem = ({ chat, onEdit, onDelete, onNavigateToChat, isEditing, onCance
 // МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ
 // =====================================================
 
-const DeleteConfirmModal = ({ isOpen, chatTitle, onConfirm, onCancel, isDeleting }) => {
+const DeleteConfirmModal = ({isOpen, chatTitle, onConfirm, onCancel, isDeleting}) => {
     if (!isOpen) return null;
 
     return (
         <AnimatePresence>
             <motion.div
                 className="modal-overlay"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                initial={{opacity: 0}}
+                animate={{opacity: 1}}
+                exit={{opacity: 0}}
                 onClick={onCancel}
             >
                 <motion.div
                     className="delete-modal"
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    initial={{opacity: 0, scale: 0.9, y: 20}}
+                    animate={{opacity: 1, scale: 1, y: 0}}
+                    exit={{opacity: 0, scale: 0.9, y: 20}}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="modal-icon">
-                        <AlertCircle className="warning-icon" />
+                        <AlertCircle className="warning-icon"/>
                     </div>
 
                     <h3 className="modal-title">Удалить чат?</h3>
@@ -260,10 +308,11 @@ const ChatHistoryPage = () => {
     const [editingChatId, setEditingChatId] = useState(null);
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, chat: null });
     const [isDeleting, setIsDeleting] = useState(false);
+    const [savingChatId, setSavingChatId] = useState(null);
 
     // Пагинация
     const [currentPage, setCurrentPage] = useState(0);
-    const CHATS_PER_PAGE = 20;
+    const CHATS_PER_PAGE = 10;
 
     // Ref для Intersection Observer
     const loadMoreRef = useRef(null);
@@ -334,36 +383,60 @@ const ChatHistoryPage = () => {
         }
     }, [currentPage, hasMore, loadingMore]);
 
-    const handleNavigateToChat = (chatId) => {
-        navigate(`/chat/${chatId}`);
+    const handleNavigateToChat = (chat) => {
+        navigate(`/chat/${chat.chat_id}`, {
+            state: {
+                chatType: chat.type,
+                title: chat.title,
+                prompt: chat.prompt,
+            }
+        });
     };
 
-    const handleEditChat = (chatId, currentTitle) => {
+    const handleEditChat = (chatId) => {
         setEditingChatId(chatId);
     };
 
     const handleSaveEdit = async (chatId, newTitle) => {
+        // Устанавливаем состояние сохранения
+        setSavingChatId(chatId);
+
         try {
             const response = await updateChatTitle(chatId, newTitle);
 
             if (response.success) {
+                // Обновляем локальное состояние чатов
                 setChats(prev => prev.map(chat =>
                     chat.chat_id === chatId
                         ? { ...chat, title: newTitle }
                         : chat
                 ));
+
+                // Выходим из режима редактирования
                 setEditingChatId(null);
+
+                console.log('Название чата успешно обновлено');
             } else {
-                alert('Не удалось изменить название чата');
+                // Обработка ошибки от API
+                console.error('API error:', response.error);
+                alert('Не удалось изменить название чата: ' + (response.error || 'Неизвестная ошибка'));
             }
-        } catch (err) {
-            console.error('Error updating chat title:', err);
-            alert('Произошла ошибка при изменении названия');
+        } catch (error) {
+            // Обработка сетевой ошибки
+            console.error('Network error updating chat title:', error);
+            alert('Произошла ошибка при изменении названия. Проверьте подключение к интернету.');
+        } finally {
+            // Сбрасываем состояние сохранения
+            setSavingChatId(null);
         }
     };
 
+
     const handleCancelEdit = () => {
+        // Выходим из режима редактирования
         setEditingChatId(null);
+        // Сбрасываем состояние сохранения на всякий случай
+        setSavingChatId(null);
     };
 
     const handleDeleteChat = (chat) => {
@@ -478,9 +551,11 @@ const ChatHistoryPage = () => {
                                     onEdit={handleEditChat}
                                     onDelete={handleDeleteChat}
                                     onNavigateToChat={handleNavigateToChat}
-                                    isEditing={editingChatId === chat.chat_id}
+                                    isEditing={String(editingChatId) === String(chat.chat_id)}
+                                    isSaving={savingChatId === chat.chat_id}
                                     onCancelEdit={handleCancelEdit}
                                     onSaveEdit={handleSaveEdit}
+                                    isDeleting={isDeleting && deleteModal.chat?.chat_id === chat.chat_id}
                                 />
                             ))}
                         </AnimatePresence>

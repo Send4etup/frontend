@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import './RecentChats.css';
 import { getUserChats } from '../../services/chatAPI.js';
-import { getAgentByAction } from '../../utils/aiAgentsUtils.js';
+import {getAgentByAction, getAgentPrompt} from '../../utils/aiAgentsUtils.js';
 
 const RecentChats = ({ onChatClick }) => {
     const navigate = useNavigate();
@@ -177,6 +177,7 @@ const RecentChats = ({ onChatClick }) => {
                 <AnimatePresence mode="popLayout">
                     {allChats.map((chat, index) => {
                         const { icon: IconComponent, color } = getChatIcon(chat.type);
+                        const agentPrompt = getAgentPrompt(chat.type);
 
                         return (
                             <motion.div
@@ -187,6 +188,7 @@ const RecentChats = ({ onChatClick }) => {
                                         state: {
                                             chatType: chat.type,
                                             title: chat.title,
+                                            agentPrompt: agentPrompt,
                                         }
                                     });
                                 }}

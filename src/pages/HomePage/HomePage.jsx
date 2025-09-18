@@ -156,61 +156,63 @@ const HomePage = ({ user: currentUser }) => {
                     </div>
                 </div>
 
-                {/* Поле ввода */}
-                <div className="input-section">
-                    <form onSubmit={handleQuickSubmit}>
-                        <div className="input-container">
-                            <input
-                                type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                placeholder="Что тебя интересует?"
-                                className="main-input"
-                            />
-                            <div className="input-actions">
-                                <button
-                                    type="submit"
-                                    className="send-button"
-                                    disabled={!inputValue.trim() || isLoading}
-                                    style={{
-                                        background: '#43ff65',
-                                        border: 'none',
-                                        borderRadius: '50%',
-                                        width: '32px',
-                                        height: '32px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        color: '#000'
-                                    }}
-                                >
-                                    <Send size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-
-                {/* ✅ БЫСТРЫЕ ДЕЙСТВИЯ ИЗ JSON */}
-                <div className="quick-actions">
-                    {quickActions.map((action) => {
-                        const IconComponent = action.icon;
-                        return (
-                            <button
-                                key={action.id}
-                                className="quick-action-btn"
-                                onClick={() => handleQuickAction(action.action)}
-                            >
-                                <IconComponent
-                                    className="quick-action-icon"
-                                    style={{ color: action.iconColor }}
+                <div className="panel">
+                    {/* Поле ввода */}
+                    <div className="input-section">
+                        <form onSubmit={handleQuickSubmit}>
+                            <div className="input-container">
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    placeholder="Что тебя интересует?"
+                                    className="main-input"
                                 />
-                                <p className="quick-action-label">{action.label}</p>
-                            </button>
-                        );
-                    })}
+                                <div className="input-actions">
+                                    <button
+                                        type="submit"
+                                        className="send-button"
+                                        disabled={!inputValue.trim() || isLoading}
+                                        style={{
+                                            background: '#43ff65',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            width: '32px',
+                                            height: '32px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            color: '#000'
+                                        }}
+                                    >
+                                        <Send size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* ✅ БЫСТРЫЕ ДЕЙСТВИЯ ИЗ JSON */}
+                    <div className="quick-actions">
+                        {quickActions.map((action) => {
+                            const IconComponent = action.icon;
+                            return (
+                                <button
+                                    key={action.id}
+                                    className="quick-action-btn"
+                                    onClick={() => handleQuickAction(action.action)}
+                                >
+                                    <IconComponent
+                                        className="quick-action-icon"
+                                        style={{ color: action.iconColor }}
+                                    />
+                                    <p className="quick-action-label">{action.label}</p>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 {/* Последние чаты */}

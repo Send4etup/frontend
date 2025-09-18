@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Edit3 } from 'lucide-react';
 import { getAgentByAction } from '../../../utils/aiAgentsUtils';
 
-const ChatHeader = ({ title, chatId, chatType, onNavigateBack }) => {
+const ChatHeader = ({ title, chatId, chatType, onNavigateBack, agentPrompt }) => {
     const getChatIcon = () => {
         const agentConfig = getAgentByAction(chatType);
         if (agentConfig && agentConfig.icon) {
@@ -30,7 +30,7 @@ const ChatHeader = ({ title, chatId, chatType, onNavigateBack }) => {
                 <ArrowLeft className="icon"/>
             </motion.button>
 
-            <h1 className="chat-title">{title} {chatId}</h1>
+            <h1 className="chat-title">{title}</h1>
 
             <div className="chat-type-icon">
                 {getChatIcon()}
