@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     historyApiFallback: true,
     allowedHosts: [
-        '6e805cefbc8e779685fb0f3f7a7469ce.serveo.net'
+        '7cfe7eba81afb8aadb8ba2bec5cf22dd.serveo.net'
     ]
   }
 })
