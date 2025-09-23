@@ -22,6 +22,8 @@ import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 // Hook для авторизации
 import { useAuth } from "./hooks/useAuth.js";
 
+// import { csrfService } from './services/csrfService';
+
 // Styles
 import './App.css';
 import ChatHistoryPage from "./pages/ChatHistoryPage/ChatHistoryPage.jsx";
@@ -46,7 +48,8 @@ const AuthError = ({ error, onRetry }) => (
     <div className="app-error">
         <div className="error-container">
             <h2>⚠️ Ошибка авторизации</h2>
-            <p>{error}</p>
+            <p>{typeof error === 'object' ? JSON.stringify(error, null, 2) : error}</p>
+
             <div className="error-actions">
                 <button onClick={onRetry} className="retry-btn">
                     🔄 Попробовать снова
@@ -59,6 +62,7 @@ const AuthError = ({ error, onRetry }) => (
         </div>
     </div>
 );
+
 
 // Индикатор статуса подключения к серверу
 const ConnectionStatus = ({ isOnline, isLoading }) => {

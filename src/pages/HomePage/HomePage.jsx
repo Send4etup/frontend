@@ -140,6 +140,8 @@ const HomePage = ({ user: currentUser }) => {
         }
     };
 
+    const telegramsave = window.Telegram.WebApp.initData;
+
     return (
         <div className="home-page">
             <div className="container">
@@ -148,6 +150,7 @@ const HomePage = ({ user: currentUser }) => {
                     <h1 className="welcome-message">
                         Чем я могу тебе сегодня помочь?
                     </h1>
+
                     <div className="quatation">
                         <p className="quote">{dailyQuote}</p>
                         <p className="quote-author">

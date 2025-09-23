@@ -1,4 +1,7 @@
 // src/services/chatAPI.js
+
+// import { csrfService } from './csrfService';
+
 /**
  * API функции для работы с чатами ТоварищБота
  */
@@ -8,13 +11,17 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213/api'
 /**
  * Получение заголовков для запросов с авторизацией
  */
-const getAuthHeaders = () => {
-    // TODO: Заменить на реальный токен из Telegram auth
+const getAuthHeaders = async () => {
     const token = localStorage.getItem('backend_token');
+
+    // if (!csrfService.hasToken()) {
+    //     await csrfService.getCsrfToken();
+    // }
 
     return {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        // 'X-CSRF-Token': csrfService.getToken()  // Добавляем CSRF токен
     };
 };
 
@@ -30,7 +37,8 @@ export const createChat = async (title, chatType = 'general') => {
 
         const response = await fetch(`${API_BASE_URL}/chat/create`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: await getAuthHeaders(),
+            credentials: 'include',
             body: JSON.stringify({
                 title: title,
                 chat_type: chatType,
@@ -72,7 +80,8 @@ export const sendMessage = async (message, chatId, chatType) => {
 
         const response = await fetch(`${API_BASE_URL}/chat/send`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: await getAuthHeaders(),
+            credentials: 'include',
             body: JSON.stringify({
                 chat_id: chatId,
                 tool_type: chatType,
@@ -122,7 +131,12 @@ export const sendMessageWithFiles = async (message, files, chatId, chatType) => 
 
         const response = await fetch(`${API_BASE_URL}/chat/send-with-files`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('backend_token')}`,
+                // 'X-CSRF-Token': csrfService.hasToken() ? csrfService.getToken() : await csrfService.getCsrfToken()
+                // НЕ добавляем Content-Type для FormData!
+            },
+            credentials: 'include',
             body: formData
         });
 
@@ -166,7 +180,8 @@ export const getAIResponse = async (message, chatId, options = {}) => {
 
         const response = await fetch(`${API_BASE_URL}/chat/ai-response`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: await getAuthHeaders(),
+            credentials: 'include',
             body: JSON.stringify(requestBody)
         });
 
@@ -207,7 +222,8 @@ export const getUserChats = async (limit = 10, offset = 0) => {
 
         const response = await fetch(url, {
             method: 'GET',
-            headers: getAuthHeaders()
+            headers: await getAuthHeaders(),
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -243,7 +259,8 @@ export const getChatMessages = async (chatId, limit = 50) => {
     try {
         const response = await fetch(`${API_BASE_URL}/chat/${chatId}/messages?limit=${limit}`, {
             method: 'GET',
-            headers: getAuthHeaders()
+            headers: await getAuthHeaders(),
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -278,7 +295,8 @@ export const updateChatTitle = async (chatId, newTitle) => {
     try {
         const response = await fetch(`${API_BASE_URL}/chat/${chatId}/title`, {
             method: 'PUT',
-            headers: getAuthHeaders(),
+            headers: await getAuthHeaders(),
+            credentials: 'include',
             body: JSON.stringify({
                 title: newTitle.trim()
             })
@@ -315,7 +333,8 @@ export const deleteChatById = async (chatId) => {
     try {
         const response = await fetch(`${API_BASE_URL}/chat/${chatId}`, {
             method: 'DELETE',
-            headers: getAuthHeaders()
+            headers: await getAuthHeaders(),
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -349,7 +368,8 @@ export const getChatInfo = async (chatId) => {
     try {
         const response = await fetch(`${API_BASE_URL}/chat/${chatId}`, {
             method: 'GET',
-            headers: getAuthHeaders()
+            headers: await getAuthHeaders(),
+            credentials: 'include',
         });
 
         if (!response.ok) {

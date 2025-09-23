@@ -5,31 +5,51 @@ import {
     User, ChevronRight, Gift,
     Trophy, Zap, Edit3, X, Camera
 } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { useUserProfile } from '../../services/userApi';
 import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import SubscriptionCard from '../../components/SubscriptionCard/SubscriptionCard';
 import { pageTransition, itemAnimation } from '../../utils/animations';
 import './ProfilePage.css';
 
-const ProfilePage = ({ user: currentUser }) => {
+const ProfilePage = () => {
     const navigate = useNavigate();
+    const { user, token, isAuthenticated } = useAuth();
+    const {
+        profileData,
+        isLoading: profileLoading,
+        error: profileError,
+        loadExtendedProfile,
+        updateProfile
+    } = useUserProfile(token);
+
     const [isEditing, setIsEditing] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const [showTariffModal, setShowTariffModal] = useState(false);
-    const [profileLoading, setProfileLoading] = useState(true);
-    const [menuLoading, setMenuLoading] = useState(true);
-    const [tariffLoading, setTariffLoading] = useState(true);
-    const profileData = currentUser;
-    // const [profileData, setProfileData] = useState({
-    //     name: user?.name || 'None',
-    //     class: '11-А класс',
-    //     school: 'Стартуем',
-    //     phone: '+7 (983) 231 23 21',
-    //     email: 'Example@mail.com',
-    //     city: 'Москва',
-    //     schoolNumber: '1499',
-    //     classNumber: '11Б',
-    //     avatar: '/avatars/profile.jpg'
-    // });
+    const [tokenStats, setTokenStats] = useState(null);
+    const [activityHistory, setActivityHistory] = useState([]);
+
+    // Загрузка данных профиля при монтировании
+    useEffect(() => {
+        if (isAuthenticated && token) {
+            loadProfileData();
+        }
+    }, [isAuthenticated, token]);
+
+    const loadProfileData = async () => {
+        try {
+            // Загружаем основные данные профиля
+            await loadExtendedProfile();
+
+            // Здесь можно добавить загрузку дополнительной статистики
+            // const stats = await loadTokenStats(30);
+            // setTokenStats(stats);
+
+            // const activity = await loadActivityHistory(5);
+            // setActivityHistory(activity);
+        } catch (err) {
+            console.error('Ошибка загрузки данных профиля:', err);
+        }
+    };
 
     const subscriptions = [
         {
@@ -39,7 +59,7 @@ const ProfilePage = ({ user: currentUser }) => {
             saves: 0,
             tokens: '5 запросов',
             isPopular: false,
-            isCurrent: false
+            isCurrent: user?.db?.subscription_type === 'free'
         },
         {
             id: 2,
@@ -48,7 +68,7 @@ const ProfilePage = ({ user: currentUser }) => {
             saves: 80,
             tokens: '38 тыс. токенов',
             isPopular: false,
-            isCurrent: true
+            isCurrent: user?.db?.subscription_type === 'basic'
         },
         {
             id: 3,
@@ -58,7 +78,7 @@ const ProfilePage = ({ user: currentUser }) => {
             tokens: '190 тыс. токенов',
             isPopular: true,
             badge: 'save 20%',
-            isCurrent: false
+            isCurrent: user?.db?.subscription_type === 'premium'
         },
         {
             id: 4,
@@ -68,19 +88,9 @@ const ProfilePage = ({ user: currentUser }) => {
             tokens: '390 тыс. токенов',
             isPopular: false,
             badge: 'save 20%',
-            isCurrent: false
+            isCurrent: user?.db?.subscription_type === 'mega'
         }
     ];
-
-    //
-    // const handleSaveProfile = async () => {
-    //     try {
-    //         await updateProfile(profileData);
-    //         setIsEditing(false);
-    //     } catch (error) {
-    //         console.error('Failed to update profile:', error);
-    //     }
-    // };
 
     const handleNavigation = (path) => {
         navigate(path);
@@ -99,8 +109,60 @@ const ProfilePage = ({ user: currentUser }) => {
         setShowTariffModal(false);
     };
 
-    const currentTariff = subscriptions.find(sub => sub.isCurrent);
+    const handleSaveProfile = async () => {
+        try {
+            await updateProfile(profileData?.user_info);
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+        }
+    };
 
+    // Проверяем авторизацию
+    if (!isAuthenticated) {
+        return (
+            <motion.div
+                className="profile-page"
+                variants={pageTransition}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+            >
+                <div className="container">
+                    <div className="auth-required">
+                        <p>Необходимо авторизоваться для просмотра профиля</p>
+                    </div>
+                </div>
+            </motion.div>
+        );
+    }
+
+    // Показываем загрузку
+    if (profileLoading || !user) {
+        return <LoadingSpinner fullScreen />;
+    }
+
+    // Показываем ошибку
+    if (profileError) {
+        return (
+            <motion.div
+                className="profile-page"
+                variants={pageTransition}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+            >
+                <div className="container">
+                    <div className="error-message">
+                        <p>Ошибка загрузки профиля: {profileError}</p>
+                        <button onClick={loadProfileData}>Попробовать снова</button>
+                    </div>
+                </div>
+            </motion.div>
+        );
+    }
+
+    // Режим редактирования (упрощенный)
     if (isEditing) {
         return (
             <motion.div
@@ -129,10 +191,10 @@ const ProfilePage = ({ user: currentUser }) => {
                     >
                         <div className="avatar-wrapper">
                             <div className="avatar">
-                                {profileData.avatar ? (
+                                {user?.telegram?.photo_url ? (
                                     <img
-                                        src={profileData.avatar}
-                                        alt={profileData.name}
+                                        src={user.telegram.photo_url}
+                                        alt={user.telegram.first_name}
                                         onError={(e) => {
                                             e.target.style.display = 'none';
                                             e.target.nextSibling.style.display = 'block';
@@ -141,7 +203,7 @@ const ProfilePage = ({ user: currentUser }) => {
                                 ) : null}
                                 <User
                                     className="avatar-icon"
-                                    style={{ display: profileData.avatar ? 'none' : 'block' }}
+                                    style={{ display: user?.telegram?.photo_url ? 'none' : 'block' }}
                                 />
                             </div>
                             <motion.button
@@ -162,9 +224,13 @@ const ProfilePage = ({ user: currentUser }) => {
                             <label>Имя</label>
                             <input
                                 type="text"
-                                value={profileData.name}
-                                onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                                value={profileData?.user_info?.first_name || user?.telegram?.first_name || ''}
+                                onChange={(e) => {
+                                    // Обновляем локальное состояние
+                                    // setProfileData можно добавить если нужно
+                                }}
                                 className="form-input"
+                                placeholder="Введите имя"
                             />
                         </div>
 
@@ -172,149 +238,35 @@ const ProfilePage = ({ user: currentUser }) => {
                             <label>Фамилия</label>
                             <input
                                 type="text"
-                                placeholder="Иванович"
+                                value={profileData?.user_info?.last_name || user?.telegram?.last_name || ''}
                                 className="form-input"
+                                placeholder="Введите фамилию"
                             />
                         </div>
 
-                        {/*<div className="form-group">*/}
-                        {/*    <label>Номер телефона</label>*/}
-                        {/*    <input*/}
-                        {/*        type="tel"*/}
-                        {/*        value={profileData.phone}*/}
-                        {/*        onChange={(e) => setProfileData({...profileData, phone: e.target.value})}*/}
-                        {/*        className="form-input"*/}
-                        {/*    />*/}
-                        {/*</div>*/}
+                        <div className="form-actions">
+                            <motion.button
+                                onClick={handleSaveProfile}
+                                className="btn btn-primary"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                Сохранить
+                            </motion.button>
 
-                        {/*<div className="form-group">*/}
-                        {/*    <label>Ввести код с смс</label>*/}
-                        {/*    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>*/}
-                        {/*        <input*/}
-                        {/*            type="text"*/}
-                        {/*            placeholder="Загрузить"*/}
-                        {/*            className="form-input"*/}
-                        {/*            style={{ flex: 1 }}*/}
-                        {/*        />*/}
-                        {/*        <motion.button*/}
-                        {/*            type="button"*/}
-                        {/*            className="upload-btn"*/}
-                        {/*            whileHover={{ scale: 1.1 }}*/}
-                        {/*            whileTap={{ scale: 0.9 }}*/}
-                        {/*        >*/}
-                        {/*            📁*/}
-                        {/*        </motion.button>*/}
-                        {/*    </div>*/}
-                        {/*</div>*/}
-
-                        {/*<div className="form-group">*/}
-                        {/*    <label>Почта</label>*/}
-                        {/*    <input*/}
-                        {/*        type="email"*/}
-                        {/*        value={profileData.email}*/}
-                        {/*        onChange={(e) => setProfileData({...profileData, email: e.target.value})}*/}
-                        {/*        className="form-input"*/}
-                        {/*    />*/}
-                        {/*</div>*/}
-
-                        {/*<div className="form-group">*/}
-                        {/*    <label>Ввести код с почты</label>*/}
-                        {/*    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>*/}
-                        {/*        <input*/}
-                        {/*            type="text"*/}
-                        {/*            placeholder="Загрузить"*/}
-                        {/*            className="form-input"*/}
-                        {/*            style={{ flex: 1 }}*/}
-                        {/*        />*/}
-                        {/*        <motion.button*/}
-                        {/*            type="button"*/}
-                        {/*            className="upload-btn"*/}
-                        {/*            whileHover={{ scale: 1.1 }}*/}
-                        {/*            whileTap={{ scale: 0.9 }}*/}
-                        {/*        >*/}
-                        {/*            📁*/}
-                        {/*        </motion.button>*/}
-                        {/*    </div>*/}
-                        {/*</div>*/}
-
-                        {/*<div className="form-group">*/}
-                        {/*    <label>Город</label>*/}
-                        {/*    <input*/}
-                        {/*        type="text"*/}
-                        {/*        value={profileData.city}*/}
-                        {/*        onChange={(e) => setProfileData({...profileData, city: e.target.value})}*/}
-                        {/*        className="form-input"*/}
-                        {/*    />*/}
-                        {/*</div>*/}
-
-                        {/*<div className="form-row">*/}
-                        {/*    <div className="form-group">*/}
-                        {/*        <label>Школа</label>*/}
-                        {/*        <input*/}
-                        {/*            type="text"*/}
-                        {/*            value={profileData.schoolNumber}*/}
-                        {/*            onChange={(e) => setProfileData({...profileData, schoolNumber: e.target.value})}*/}
-                        {/*            className="form-input"*/}
-                        {/*        />*/}
-                        {/*    </div>*/}
-                        {/*    <div className="form-group">*/}
-                        {/*        <label>Класс</label>*/}
-                        {/*        <input*/}
-                        {/*            type="text"*/}
-                        {/*            value={profileData.classNumber}*/}
-                        {/*            onChange={(e) => setProfileData({...profileData, classNumber: e.target.value})}*/}
-                        {/*            className="form-input"*/}
-                        {/*        />*/}
-                        {/*    </div>*/}
-                        {/*</div>*/}
-
-                        {/*<div className="form-group">*/}
-                        {/*    <label>Справка об обучении</label>*/}
-                        {/*    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>*/}
-                        {/*        <input*/}
-                        {/*            type="text"*/}
-                        {/*            placeholder="Загрузить"*/}
-                        {/*            className="form-input"*/}
-                        {/*            style={{ flex: 1 }}*/}
-                        {/*        />*/}
-                        {/*        <motion.button*/}
-                        {/*            type="button"*/}
-                        {/*            className="upload-btn"*/}
-                        {/*            whileHover={{ scale: 1.1 }}*/}
-                        {/*            whileTap={{ scale: 0.9 }}*/}
-                        {/*        >*/}
-                        {/*            📁*/}
-                        {/*        </motion.button>*/}
-                        {/*    </div>*/}
-                        {/*</div>*/}
-
-                        {/*<div className="form-actions">*/}
-                        {/*    <motion.button*/}
-                        {/*        onClick={handleSaveProfile}*/}
-                        {/*        className="btn btn-primary"*/}
-                        {/*        whileHover={{ scale: 1.05 }}*/}
-                        {/*        whileTap={{ scale: 0.95 }}*/}
-                        {/*    >*/}
-                        {/*        Сохранить*/}
-                        {/*    </motion.button>*/}
-
-                        {/*    <motion.button*/}
-                        {/*        onClick={() => setIsEditing(false)}*/}
-                        {/*        className="btn btn-secondary"*/}
-                        {/*        whileHover={{ scale: 1.05 }}*/}
-                        {/*        whileTap={{ scale: 0.95 }}*/}
-                        {/*    >*/}
-                        {/*        Отменить*/}
-                        {/*    </motion.button>*/}
-                        {/*</div>*/}
+                            <motion.button
+                                onClick={() => setIsEditing(false)}
+                                className="btn btn-secondary"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                Отменить
+                            </motion.button>
+                        </div>
                     </motion.div>
                 </div>
             </motion.div>
         );
-    }
-
-    if (isLoading) {
-        return <LoadingSpinner fullScreen />;
     }
 
     return (
@@ -330,9 +282,7 @@ const ProfilePage = ({ user: currentUser }) => {
                     className="page-title"
                     variants={itemAnimation}
                 >
-                    <h1>
-                        Профиль
-                    </h1>
+                    <h1>Профиль</h1>
                 </motion.div>
 
                 <motion.div
@@ -341,10 +291,10 @@ const ProfilePage = ({ user: currentUser }) => {
                 >
                     <div className="profile-header">
                         <div className="avatar">
-                            {profileData.telegram.photo_url ? (
+                            {user?.telegram?.photo_url ? (
                                 <img
-                                    src={profileData.telegram.photo_url}
-                                    alt={profileData.telegram.username}
+                                    src={user.telegram.photo_url}
+                                    alt={user.telegram.first_name}
                                     onError={(e) => {
                                         e.target.style.display = 'none';
                                         e.target.nextSibling.style.display = 'block';
@@ -353,62 +303,66 @@ const ProfilePage = ({ user: currentUser }) => {
                             ) : null}
                             <User
                                 className="avatar-icon"
-                                style={{ display: profileData.telegram.avatar ? 'none' : 'block' }}
+                                style={{ display: user?.telegram?.photo_url ? 'none' : 'block' }}
                             />
                         </div>
                         <div className="profile-info">
-                            <h1>{profileData.telegram.username}</h1>
-                            {/*<p className="profile-details">{profileData.class} • {profileData.school}</p>*/}
-                            {/*<p className="profile-details">*/}
-                            {/*    <Trophy className="badge-icon"/> Отличник • <Zap className="badge-icon"/> Серия дней: 156*/}
-                            {/*</p>*/}
+                            <h1>
+                                {profileData?.user_info?.first_name || user?.telegram?.first_name || user?.telegram?.username || 'Пользователь'}
+                            </h1>
+                            <p className="profile-details">
+                                @{user?.telegram?.username || 'username'}
+                            </p>
+                            {profileData?.user_info?.is_premium && (
+                                <p className="profile-details">
+                                    <Trophy className="badge-icon"/> Telegram Premium
+                                </p>
+                            )}
                         </div>
                     </div>
 
-                    {/*<motion.button*/}
-                    {/*    onClick={() => setIsEditing(true)}*/}
-                    {/*    className="btn btn-white"*/}
-                    {/*    whileHover={{ scale: 1.05 }}*/}
-                    {/*    whileTap={{ scale: 0.95 }}*/}
-                    {/*>*/}
-                    {/*    Редактировать профиль*/}
-                    {/*</motion.button>*/}
+                    <motion.button
+                        onClick={() => setIsEditing(true)}
+                        className="btn btn-white"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        Редактировать профиль
+                    </motion.button>
                 </motion.div>
+
+                {/* Статистика пользователя */}
+                {profileData?.statistics && (
+                    <motion.div
+                        className="profile-stats"
+                        variants={itemAnimation}
+                    >
+                        <h2>Статистика</h2>
+                        <div className="stats-grid">
+                            <div className="stat-item">
+                                <span className="stat-number">{profileData.statistics.total_chats || 0}</span>
+                                <span className="stat-label">Чатов</span>
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-number">{profileData.statistics.total_messages || 0}</span>
+                                <span className="stat-label">Сообщений</span>
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-number">{profileData.statistics.files_uploaded || 0}</span>
+                                <span className="stat-label">Файлов</span>
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-number">{profileData.statistics.token_usage_30_days || 0}</span>
+                                <span className="stat-label">Токенов за месяц</span>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
 
                 <motion.div
                     className="profile-menu"
                     variants={itemAnimation}
                 >
-                    {/*<motion.button*/}
-                    {/*    onClick={() => handleNavigation('/friends')}*/}
-                    {/*    className="menu-item dop"*/}
-                    {/*    whileHover={{x: 5}}*/}
-                    {/*    whileTap={{scale: 0.98}}*/}
-                    {/*>*/}
-                    {/*    <div className="menu-left">*/}
-                    {/*        <h4 className="menu-label">Друзья</h4>*/}
-                    {/*        <p className="menu-value">У тебя 13 друзей</p>*/}
-                    {/*    </div>*/}
-                    {/*    <div className="menu-right">*/}
-                    {/*        <ChevronRight className="menu-arrow"/>*/}
-                    {/*    </div>*/}
-                    {/*</motion.button>*/}
-
-                    {/*<motion.button*/}
-                    {/*    onClick={() => handleNavigation('/teachers')}*/}
-                    {/*    className="menu-item dop"*/}
-                    {/*    whileHover={{x: 5}}*/}
-                    {/*    whileTap={{scale: 0.98}}*/}
-                    {/*>*/}
-                    {/*    <div className="menu-left">*/}
-                    {/*        <h4 className="menu-label">Учителя</h4>*/}
-                    {/*        <p className="menu-value">У тебя 4 учителя</p>*/}
-                    {/*    </div>*/}
-                    {/*    <div className="menu-right">*/}
-                    {/*        <ChevronRight className="menu-arrow"/>*/}
-                    {/*    </div>*/}
-                    {/*</motion.button>*/}
-
                     <motion.button
                         onClick={() => handleNavigation('/ideas')}
                         className="menu-item"
@@ -438,28 +392,23 @@ const ProfilePage = ({ user: currentUser }) => {
                     variants={itemAnimation}
                     onClick={handleTariffManage}
                 >
-                    <motion.div className="tariff-content"
-
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
+                    <motion.div
+                        className="tariff-content"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
                     >
                         <div>
-                            <p className="tariff-title">Ваш тариф: {profileData.db.subscription_type}</p>
+                            <p className="tariff-title">
+                                Ваш тариф: {profileData?.subscription?.type || user?.db?.subscription_type || 'free'}
+                            </p>
+                            <p className="tariff-subtitle">
+                                Токенов: {profileData?.subscription?.tokens_balance || user?.db?.tokens_balance || 0}
+                            </p>
                             <p className="tariff-manage">управлять ›</p>
                         </div>
                         <div className="tariff-emoji">😎</div>
                     </motion.div>
                 </motion.div>
-
-                {/*<motion.button*/}
-                {/*    className="promo-button"*/}
-                {/*    variants={itemAnimation}*/}
-                {/*    whileHover={{ scale: 1.02 }}*/}
-                {/*    whileTap={{ scale: 0.98 }}*/}
-                {/*>*/}
-                {/*    <Gift className="promo-icon" />*/}
-                {/*    <span>Ввести промокод</span>*/}
-                {/*</motion.button>*/}
 
                 {/* Tariff Modal */}
                 <AnimatePresence>
