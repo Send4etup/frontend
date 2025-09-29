@@ -56,7 +56,12 @@ const ChatPage = () => {
     // Эффекты для инициализации
     useEffect(() => {
         if (location.state) {
-            const { initialMessage, isToolDescription, isRegularMessage } = location.state;
+            const { initialMessage, isToolDescription, isRegularMessage, attachedFiles } = location.state;
+
+            // Если есть файлы, не обрабатываем initialMessage здесь
+            if (attachedFiles && attachedFiles.length > 0) {
+                return; // Файлы обработаются в другом useEffect
+            }
 
             if (initialMessage) {
                 if (isToolDescription) {
@@ -73,8 +78,29 @@ const ChatPage = () => {
                     setTimeout(() => handleSendMessage(), 0);
                 }
             } else {
-                loadMessages()
+                loadMessages();
             }
+        } else {
+            loadMessages();
+        }
+    }, []);
+
+    // Эффект для обработки прикрепленных файлов из навигации
+    useEffect(() => {
+        if (location.state?.attachedFiles && location.state.attachedFiles.length > 0) {
+            setAttachedFiles(location.state.attachedFiles);
+
+            // Если есть initialMessage, устанавливаем его
+            if (location.state.initialMessage) {
+                setInputValue(location.state.initialMessage);
+            }
+
+            // Очищаем state чтобы при перезагрузке не дублировались файлы
+            window.history.replaceState({
+                ...location.state,
+                attachedFiles: null,
+                initialMessage: null
+            }, '');
         }
     }, [location.state]);
 
@@ -115,6 +141,23 @@ const ChatPage = () => {
         document.addEventListener('paste', handlePaste);
         return () => document.removeEventListener('paste', handlePaste);
     }, []);
+
+    // Автоматическая отправка после остановки записи
+    useEffect(() => {
+        // Если есть аудио файлы и input пустой, отправляем автоматически
+        if (attachedFiles.length > 0 &&
+            attachedFiles.some(file => file.type.startsWith('audio/')) &&
+            !inputValue.trim() &&
+            !isRecording) {
+
+            // Небольшая задержка для визуального эффекта
+            const timer = setTimeout(() => {
+                handleSendMessage();
+            }, 500);
+
+            return () => clearTimeout(timer);
+        }
+    }, [attachedFiles, isRecording]);
 
     // Функции загрузки сообщений
     const loadMessages = async () => {

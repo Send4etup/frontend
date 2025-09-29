@@ -1,9 +1,10 @@
 // src/pages/HomePage/HomePage.jsx - Обновленная версия с использованием JSON конфигурации
 
 import React, { useState, useEffect } from 'react';
-import { Send, ChevronRight, History, MessageCircle } from 'lucide-react';
+import { Send, ChevronRight, History, MessageCircle, Paperclip, Mic, MicOff, Image, FileText, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
+import { motion } from "framer-motion";
 import { createChat, getUserChats } from "../../services/chatAPI.js";
 import RecentChats from "../../components/RecentChats/RecentChats.jsx";
 
@@ -45,6 +46,13 @@ const HomePage = ({ user: currentUser }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [dailyQuote, setDailyQuote] = useState('');
+    const [isRecording, setIsRecording] = useState(false);
+    const [mediaRecorder, setMediaRecorder] = useState(null);
+    const [fileErrors, setFileErrors] = useState([]);
+    const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+    const SUPPORTED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/m4a', 'audio/aac'];
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    const MAX_FILES_PER_MESSAGE = 10;
 
     // ✅ ПОЛУЧАЕМ БЫСТРЫЕ ДЕЙСТВИЯ ИЗ JSON
     const quickActions = getQuickActions();
@@ -80,32 +88,30 @@ const HomePage = ({ user: currentUser }) => {
 
     const handleQuickSubmit = async (e) => {
         e.preventDefault();
-        e.stopPropagation();
 
-        if (!inputValue.trim() || isLoading) return;
-
-        setIsLoading(true);
+        if (!inputValue.trim()) return;
 
         try {
-            setError(null);
-            console.log('Mock: sending quick message:', inputValue);
+            setIsLoading(true);
+            const chatResponse = await createChat('ТоварищБот', 'general');
 
-            const ChatCreateInfo = await createChat('Обычный чат', 'general');
-            const messageToSend = inputValue.trim();
-            setInputValue('');
+            if (chatResponse.success) {
+                const newChatId = chatResponse.data.chat_id;
 
-            navigate(`/chat/${ChatCreateInfo.chat_id}`, {
-                state: {
-                    chatType: 'general',
-                    title: 'Общий чат',
-                    initialMessage: messageToSend,
-                    agentPrompt: 'Обычный чат с учеником',
-                }
-            });
-
+                navigate(`/chat/${newChatId}`, {
+                    state: {
+                        initialMessage: inputValue,
+                        chatType: 'general',
+                        title: 'ТоварищБот'
+                    }
+                });
+            } else {
+                console.error('Failed to create chat:', chatResponse.error);
+                setError('Не удалось создать чат');
+            }
         } catch (error) {
-            console.error('Failed to send quick message:', error);
-            setError('Не удалось отправить сообщение');
+            console.error('Failed to create chat:', error);
+            setError('Не удалось создать чат');
         } finally {
             setIsLoading(false);
         }
@@ -139,7 +145,230 @@ const HomePage = ({ user: currentUser }) => {
         }
     };
 
-    const telegramsave = window.Telegram.WebApp.initData;
+    // Функция для обработки прикрепления изображений с полной валидацией
+    const handleImageAttach = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = SUPPORTED_IMAGE_TYPES.map(type => type.replace('image/', '.')).join(',');
+
+        input.onchange = async (event) => {
+            const files = Array.from(event.target.files);
+
+            // Проверка на количество файлов
+            if (files.length > MAX_FILES_PER_MESSAGE) {
+                setFileErrors(prev => [...prev, `Максимум ${MAX_FILES_PER_MESSAGE} файлов за раз`]);
+                setTimeout(() => setFileErrors([]), 5000);
+                return;
+            }
+
+            // Валидация файлов
+            const validFiles = [];
+            const errors = [];
+
+            files.forEach(file => {
+                // Проверка размера
+                if (file.size > MAX_FILE_SIZE) {
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    errors.push(`"${file.name}" слишком большой (${sizeMB}MB, макс. 50MB)`);
+                    return;
+                }
+
+                // Проверка на пустой файл
+                if (file.size === 0) {
+                    errors.push(`"${file.name}" пустой файл`);
+                    return;
+                }
+
+                // Проверка типа файла
+                const fileType = file.type.toLowerCase();
+                if (!SUPPORTED_IMAGE_TYPES.includes(fileType)) {
+                    errors.push(`"${file.name}" не поддерживается. Только изображения (JPEG, PNG, GIF, WEBP, BMP)`);
+                    return;
+                }
+
+                validFiles.push(file);
+            });
+
+            // Показываем ошибки если есть
+            if (errors.length > 0) {
+                setFileErrors(prev => [...prev, ...errors]);
+                setTimeout(() => setFileErrors([]), 5000);
+            }
+
+            // Если нет валидных файлов - выходим
+            if (validFiles.length === 0) {
+                return;
+            }
+
+            // Если есть валидные файлы - создаем чат и переходим
+            try {
+                setIsLoading(true);
+
+                const chatResponse = await createChat('ТоварищБот', 'general');
+
+                if (chatResponse.success) {
+                    const newChatId = chatResponse.data.chat_id;
+
+                    // Переходим в чат с прикрепленными изображениями
+                    navigate(`/chat/${newChatId}`, {
+                        state: {
+                            chatType: 'general',
+                            title: 'ТоварищБот',
+                            attachedFiles: validFiles,
+                            initialMessage: inputValue.trim() || ''
+                        }
+                    });
+                } else {
+                    throw new Error('Failed to create chat');
+                }
+            } catch (error) {
+                console.error('Failed to create chat:', error);
+                setError('Не удалось создать чат');
+                setFileErrors(prev => [...prev, 'Не удалось создать чат. Попробуйте снова']);
+                setTimeout(() => setFileErrors([]), 5000);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        input.click();
+    };
+
+    // Функция начала записи аудио с валидацией
+    const startRecording = async () => {
+        try {
+            // Проверяем поддержку браузера
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setFileErrors(prev => [...prev, 'Ваш браузер не поддерживает запись аудио']);
+                setTimeout(() => setFileErrors([]), 5000);
+                return;
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Проверяем поддержку MediaRecorder
+            if (!window.MediaRecorder) {
+                setFileErrors(prev => [...prev, 'MediaRecorder не поддерживается в вашем браузере']);
+                setTimeout(() => setFileErrors([]), 5000);
+                stream.getTracks().forEach(track => track.stop());
+                return;
+            }
+
+            const recorder = new MediaRecorder(stream);
+            const chunks = [];
+            setMediaRecorder(recorder);
+
+            recorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    chunks.push(event.data);
+                }
+            };
+
+            recorder.onerror = (event) => {
+                console.error('MediaRecorder error:', event);
+                setFileErrors(prev => [...prev, 'Ошибка при записи аудио']);
+                setTimeout(() => setFileErrors([]), 5000);
+                setIsRecording(false);
+            };
+
+            recorder.start();
+            setIsRecording(true);
+        } catch (err) {
+            console.error("Ошибка доступа к микрофону:", err);
+
+            let errorMessage = 'Не удалось получить доступ к микрофону';
+
+            if (err.name === 'NotAllowedError') {
+                errorMessage = 'Доступ к микрофону запрещен. Разрешите доступ в настройках браузера';
+            } else if (err.name === 'NotFoundError') {
+                errorMessage = 'Микрофон не найден. Проверьте подключение микрофона';
+            } else if (err.name === 'NotReadableError') {
+                errorMessage = 'Микрофон используется другим приложением';
+            }
+
+            setFileErrors(prev => [...prev, errorMessage]);
+            setTimeout(() => setFileErrors([]), 5000);
+        }
+    };
+
+    // Функция остановки записи с валидацией
+    const stopRecording = async () => {
+        if (!mediaRecorder) return;
+
+        return new Promise((resolve) => {
+            mediaRecorder.ondataavailable = async (event) => {
+                if (event.data.size > 0) {
+                    const audioBlob = new Blob([event.data], { type: 'audio/webm' });
+
+                    // Валидация аудио файла
+                    if (audioBlob.size === 0) {
+                        setFileErrors(prev => [...prev, 'Запись пуста. Попробуйте еще раз']);
+                        setTimeout(() => setFileErrors([]), 5000);
+                        setIsRecording(false);
+                        resolve();
+                        return;
+                    }
+
+                    if (audioBlob.size > MAX_FILE_SIZE) {
+                        const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
+                        setFileErrors(prev => [...prev, `Запись слишком большая (${sizeMB}MB, макс. 50MB)`]);
+                        setTimeout(() => setFileErrors([]), 5000);
+                        setIsRecording(false);
+                        resolve();
+                        return;
+                    }
+
+                    const audioFile = new File([audioBlob], `voice-${Date.now()}.webm`, {
+                        type: 'audio/webm',
+                        lastModified: Date.now()
+                    });
+
+                    // Сразу создаем чат и переходим с аудио
+                    try {
+                        setIsLoading(true);
+
+                        const chatResponse = await createChat('ТоварищБот', 'general');
+
+                        if (chatResponse.success) {
+                            const newChatId = chatResponse.data.chat_id;
+
+                            navigate(`/chat/${newChatId}`, {
+                                state: {
+                                    chatType: 'general',
+                                    title: 'ТоварищБот',
+                                    attachedFiles: [audioFile],
+                                    initialMessage: inputValue.trim() || ''
+                                }
+                            });
+                        } else {
+                            throw new Error('Failed to create chat');
+                        }
+                    } catch (error) {
+                        console.error('Failed to create chat:', error);
+                        setFileErrors(prev => [...prev, 'Не удалось создать чат. Попробуйте снова']);
+                        setTimeout(() => setFileErrors([]), 5000);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                }
+                resolve();
+            };
+
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            setIsRecording(false);
+        });
+    };
+
+    // Переключатель записи
+    const toggleRecording = () => {
+        if (!isRecording) {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+    };
 
     return (
         <div className="home-page">
@@ -159,6 +388,7 @@ const HomePage = ({ user: currentUser }) => {
                 </div>
 
                 <div className="panel">
+
                     {/* Поле ввода */}
                     <div className="input-section">
                         <form onSubmit={handleQuickSubmit}>
@@ -169,32 +399,67 @@ const HomePage = ({ user: currentUser }) => {
                                     onChange={(e) => setInputValue(e.target.value)}
                                     placeholder="Что тебя интересует?"
                                     className="main-input"
+                                    disabled={isLoading}
                                 />
                                 <div className="input-actions">
-                                    <button
-                                        type="submit"
-                                        className="send-button"
-                                        disabled={!inputValue.trim() || isLoading}
-                                        style={{
-                                            background: '#43ff65',
-                                            border: 'none',
-                                            borderRadius: '50%',
-                                            width: '32px',
-                                            height: '32px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s ease',
-                                            color: '#000'
-                                        }}
-                                    >
-                                        <Send size={16} />
-                                    </button>
+                                    {/* Показываем кнопки только если нет текста и файлов */}
+                                    {!inputValue.trim() ? (
+                                        <>
+                                            <button
+                                                type="button"
+                                                className="input-action-btn"
+                                                onClick={handleImageAttach}
+                                                disabled={isLoading}
+                                                title="Прикрепить изображение"
+                                            >
+                                                <Image className="icon"/>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`input-action-btn ${isRecording ? 'recording' : ''}`}
+                                                onClick={toggleRecording}
+                                                disabled={isLoading}
+                                                title={isRecording ? "Остановить запись" : "Записать голосовое"}
+                                            >
+                                                {isRecording ? <MicOff className="icon"/> : <Mic className="icon"/>}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button
+                                            type="submit"
+                                            className="input-action-btn"
+                                            disabled={(!inputValue.trim()) || isLoading}
+                                        >
+                                            <Send size={16}/>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </form>
                     </div>
+
+                    {/* Уведомления об ошибках */}
+                    {fileErrors.length > 0 && (
+                        <div className="file-errors-home">
+                            {fileErrors.map((error, index) => (
+                                <motion.div
+                                    key={index}
+                                    className="error-notification"
+                                    initial={{ opacity: 0, x: 100, scale: 0.8 }}
+                                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                                    exit={{ opacity: 0, x: 100, scale: 0.8 }}
+                                    transition={{ duration: 0.3 }}
+                                    onClick={() => {
+                                        // Удаляем конкретное уведомление при клике
+                                        setFileErrors(prev => prev.filter((_, i) => i !== index));
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    {error}
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* ✅ БЫСТРЫЕ ДЕЙСТВИЯ ИЗ JSON */}
                     <div className="quick-actions">
@@ -208,7 +473,7 @@ const HomePage = ({ user: currentUser }) => {
                                 >
                                     <IconComponent
                                         className="quick-action-icon"
-                                        style={{ color: action.iconColor }}
+                                        style={{color: action.iconColor}}
                                     />
                                     <p className="quick-action-label">{action.label}</p>
                                 </button>
@@ -218,7 +483,7 @@ const HomePage = ({ user: currentUser }) => {
                 </div>
 
                 {/* Последние чаты */}
-                <div style={{ marginTop: '35px' }}>
+                <div style={{marginTop: '35px'}}>
                     {error && (
                         <div style={{
                             padding: '12px',
