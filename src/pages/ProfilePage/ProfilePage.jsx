@@ -331,34 +331,6 @@ const ProfilePage = () => {
                     </motion.button>
                 </motion.div>
 
-                {/* Статистика пользователя */}
-                {profileData?.statistics && (
-                    <motion.div
-                        className="profile-stats"
-                        variants={itemAnimation}
-                    >
-                        <h2>Статистика</h2>
-                        <div className="stats-grid">
-                            <div className="stat-item">
-                                <span className="stat-number">{profileData.statistics.total_chats || 0}</span>
-                                <span className="stat-label">Чатов</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-number">{profileData.statistics.total_messages || 0}</span>
-                                <span className="stat-label">Сообщений</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-number">{profileData.statistics.files_uploaded || 0}</span>
-                                <span className="stat-label">Файлов</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-number">{profileData.statistics.token_usage_30_days || 0}</span>
-                                <span className="stat-label">Токенов за месяц</span>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-
                 <motion.div
                     className="profile-menu"
                     variants={itemAnimation}

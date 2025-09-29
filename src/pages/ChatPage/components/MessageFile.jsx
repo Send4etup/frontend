@@ -33,10 +33,10 @@ const MessageFile = ({ file, onAnalyze, onImageClick }) => {
                         }
                     }}
                 />
-                <div className="image-info">
-                    <span>{file.name}</span>
-                    <span>{formatFileSize(file.size)}</span>
-                </div>
+                {/*<div className="image-info">*/}
+                {/*    <span>{file.name}</span>*/}
+                {/*    <span>{formatFileSize(file.size)}</span>*/}
+                {/*</div>*/}
                 {onAnalyze && file.file_id && (
                     <button
                         className="analyze-file-btn"

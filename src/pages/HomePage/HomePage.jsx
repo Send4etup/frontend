@@ -9,6 +9,7 @@ import RecentChats from "../../components/RecentChats/RecentChats.jsx";
 
 // ✅ ИМПОРТИРУЕМ АГЕНТОВ ИЗ JSON
 import {getQuickActions, getAgentPrompt, getAgentByAction} from '../../utils/aiAgentsUtils.js';
+import {getRandomQuote} from "./quotes.js";
 
 // Встроенные компоненты остаются те же...
 const SimpleProgressBar = ({ current, max, color = "#43ff65" }) => {
@@ -43,16 +44,14 @@ const HomePage = ({ user: currentUser }) => {
     const [chatHistory, setChatHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [dailyQuote] = useState(() => {
-        const today = new Date().getDate();
-        return DAILY_QUOTES[today % DAILY_QUOTES.length];
-    });
+    const [dailyQuote, setDailyQuote] = useState('');
 
     // ✅ ПОЛУЧАЕМ БЫСТРЫЕ ДЕЙСТВИЯ ИЗ JSON
     const quickActions = getQuickActions();
 
     useEffect(() => {
         loadChatHistory();
+        setDailyQuote(getRandomQuote());
     }, []);
 
     const loadChatHistory = async () => {
@@ -152,9 +151,9 @@ const HomePage = ({ user: currentUser }) => {
                     </h1>
 
                     <div className="quatation">
-                        <p className="quote">{dailyQuote}</p>
+                        <p className="quote">{dailyQuote.text}</p>
                         <p className="quote-author">
-                            — Привет, {currentUser?.telegram?.username || 'друг'}!
+                            — {dailyQuote.author}
                         </p>
                     </div>
                 </div>

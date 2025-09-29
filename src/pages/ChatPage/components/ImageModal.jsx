@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import './ImageModal.css';
 
 const ImageModal = ({ isOpen, image, onClose }) => {
     useEffect(() => {
@@ -53,22 +54,12 @@ const ImageModal = ({ isOpen, image, onClose }) => {
                     exit={{ scale: 0.8, opacity: 0 }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
                 >
-                    <button
-                        className="image-modal-close"
-                        onClick={onClose}
-                    >
-                        <X size={24} />
-                    </button>
-
                     <div className="image-modal-content">
                         <img
                             src={image.url || URL.createObjectURL(image)}
                             alt={image.name}
                             className="image-modal-img"
                         />
-                        <div className="image-modal-info">
-                            <span className="image-modal-name">{image.name}</span>
-                        </div>
                     </div>
                 </motion.div>
             </motion.div>

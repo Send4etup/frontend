@@ -74,8 +74,8 @@
 }
 
 .input-container {
-    background-color: #1a1a1a;
-    border: 1px solid #333;
+    background: none;
+    border: 2px solid #7e7e7e;
     border-radius: 20px;
     display: flex;
     align-items: center;
@@ -89,7 +89,7 @@
 
 .main-input {
     flex: 1;
-    background: transparent;
+    background: none;
     border: none;
     outline: none;
     color: #fff;
@@ -133,17 +133,24 @@
     height: 18px;
 }
 
+.panel {
+    background: #040404;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 0 20px #454545;
+}
+
 /* Быстрые действия - новый стиль как на изображении */
 .quick-actions {
     display: flex;
+    justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    margin-bottom: 25px;
 }
 
 .quick-action-btn {
     background: transparent;
-    border: 1px solid #333;
+    border: 2px solid #7e7e7e;
     border-radius: 20px;
     padding: 12px 16px;
     text-align: left;
@@ -153,7 +160,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    width: 100%;
+    flex-grow: 1;
+    /*width: 100%;*/
     position: relative;
     overflow: hidden;
 }
