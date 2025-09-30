@@ -123,18 +123,18 @@ const MessageList = ({
                                         </svg>
                                     </motion.button>
 
-                                    <motion.button
-                                        className="action-btn"
-                                        onClick={onResendMessage}
-                                        title="Повторить запрос"
-                                        whileTap={{scale: 0.9}}
-                                        transition={{type: "spring", stiffness: 400, damping: 20}}
-                                    >
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                            <path d="M1 4v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        </svg>
-                                    </motion.button>
+                                    {/*<motion.button*/}
+                                    {/*    className="action-btn"*/}
+                                    {/*    onClick={onResendMessage}*/}
+                                    {/*    title="Повторить запрос"*/}
+                                    {/*    whileTap={{scale: 0.9}}*/}
+                                    {/*    transition={{type: "spring", stiffness: 400, damping: 20}}*/}
+                                    {/*>*/}
+                                    {/*    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">*/}
+                                    {/*        <path d="M1 4v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>*/}
+                                    {/*        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>*/}
+                                    {/*    </svg>*/}
+                                    {/*</motion.button>*/}
                                 </div>
                             )}
 

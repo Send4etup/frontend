@@ -13,7 +13,7 @@ import ImageModal from './components/ImageModal';
 
 // Utils & Services
 import { pageTransition, itemAnimation } from '../../utils/animations';
-import { getChatMessages, sendMessage, sendMessageWithFiles } from "../../services/chatAPI.js";
+import { getChatMessages, sendMessage, sendMessageWithFiles, getAIResponseStream } from "../../services/chatAPI.js";
 import { getWelcomeMessage } from "../../utils/aiAgentsUtils.js";
 
 // Styles
@@ -298,16 +298,126 @@ const ChatPage = () => {
                 if (attachedFiles.length === 0) {
                     const sendResult = await sendMessage(text, chatId, chatType);
 
-                    if (sendResult.success){
+                    if (sendResult.success) {
                         const res = sendResult.data;
 
-                        setMessages(prev => prev.map(m => m.id === res.message_id
+                        // Обновляем статус отправленного сообщения
+                        setMessages(prev => prev.map(m => m.status === 'sending'
                             ? { ...m, id: res.message_id ?? m.id, status: 'sent', timestamp: res.timestamp ?? m.timestamp }
                             : m
                         ));
+
+                        // Создаем пустое сообщение бота для streaming
+                        const botMessageId = Date.now();
+                        const botMessage = {
+                            id: botMessageId,
+                            role: 'assistant',
+                            content: '',
+                            timestamp: new Date(),
+                            isStreaming: true
+                        };
+
+                        setMessages(prev => [...prev, botMessage]);
+                        setStreamingMessageId(botMessageId);
+
+                        // Получаем streaming ответ от ИИ
+                        try {
+                            await getAIResponseStream(
+                                text,
+                                chatId,
+                                { tool_type: chatType },
+                                (chunk) => {
+                                    // Обновляем сообщение с каждым чанком
+                                    setMessages(prev => prev.map(msg =>
+                                        msg.id === botMessageId
+                                            ? { ...msg, content: msg.content + chunk }
+                                            : msg
+                                    ));
+                                }
+                            );
+
+                            // Завершаем streaming
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === botMessageId
+                                    ? { ...msg, isStreaming: false }
+                                    : msg
+                            ));
+                            setStreamingMessageId(null);
+
+                        } catch (error) {
+                            console.error('AI streaming error:', error);
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === botMessageId
+                                    ? { ...msg, content: 'Ошибка получения ответа. Попробуйте ещё раз.', isStreaming: false }
+                                    : msg
+                            ));
+                            setStreamingMessageId(null);
+                        }
                     }
                 } else {
-                    const sendResult = await sendMessageWithFiles(text, optimisticMsg.files, chatId, chatType)
+                    const sendResult = await sendMessageWithFiles(text, optimisticMsg.files, chatId, chatType);
+
+                    if (sendResult.success) {
+                        const res = sendResult.data;
+
+                        // Обновляем сообщение пользователя
+                        setMessages(prev => prev.map(m => m.status === 'sending'
+                            ? {
+                                ...m,
+                                id: res.message_id ?? m.id,
+                                status: 'sent',
+                                timestamp: res.timestamp ?? m.timestamp,
+                                files: res.uploaded_files || m.files
+                            }
+                            : m
+                        ));
+
+                        // Создаем пустое сообщение бота для streaming
+                        const botMessageId = Date.now();
+                        const botMessage = {
+                            id: botMessageId,
+                            role: 'assistant',
+                            content: '',
+                            timestamp: new Date(),
+                            isStreaming: true
+                        };
+
+                        setMessages(prev => [...prev, botMessage]);
+                        setStreamingMessageId(botMessageId);
+
+                        // Получаем streaming ответ от ИИ
+                        try {
+                            await getAIResponseStream(
+                                text || 'Проанализируй прикрепленные файлы',
+                                chatId,
+                                { tool_type: chatType },
+                                (chunk) => {
+                                    setMessages(prev => prev.map(msg =>
+                                        msg.id === botMessageId
+                                            ? { ...msg, content: msg.content + chunk }
+                                            : msg
+                                    ));
+                                }
+                            );
+
+                            // Завершаем streaming
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === botMessageId
+                                    ? { ...msg, isStreaming: false }
+                                    : msg
+                            ));
+                            setStreamingMessageId(null);
+
+                        } catch (error) {
+                            console.error('AI streaming error:', error);
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === botMessageId
+                                    ? { ...msg, content: 'Ошибка получения ответа. Попробуйте ещё раз.', isStreaming: false }
+                                    : msg
+                            ));
+                            setStreamingMessageId(null);
+                        }
+                    }
                 }
 
             } catch (error) {
@@ -390,7 +500,10 @@ const ChatPage = () => {
         setIsLoading(true);
 
         try {
-            await sendMessage(messageContent, messageFiles, chatId);
+            setTimeout(() => {
+                handleSendMessage();
+            }, 500);
+
             // Добавить логику стриминга ответа
         } catch (error) {
             console.error('Ошибка при повторной отправке:', error);

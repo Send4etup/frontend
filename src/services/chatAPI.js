@@ -163,19 +163,21 @@ export const sendMessageWithFiles = async (message, files, chatId, chatType) => 
 };
 
 /**
- * Получение ответа от ИИ
+ * Получение streaming ответа от ИИ
  * @param {string} message - Сообщение пользователя
  * @param {string} chatId - ID чата
  * @param {Object} options - Дополнительные параметры
- * @returns {Promise<Object>} Ответ ИИ
+ * @param {Function} onChunk - Callback для каждого чанка текста
+ * @returns {Promise<string>} Полный ответ ИИ
  */
-export const getAIResponse = async (message, chatId, options = {}) => {
+export const getAIResponseStream = async (message, chatId, options = {}, onChunk) => {
     try {
         const requestBody = {
             message: message,
             chat_id: chatId,
-            tool_type: options.tool_type || 'general',
-            files_count: options.files_count || 0
+            context: {
+                tool_type: options.tool_type || 'general'
+            }
         };
 
         const response = await fetch(`${API_BASE_URL}/chat/ai-response`, {
@@ -190,20 +192,30 @@ export const getAIResponse = async (message, chatId, options = {}) => {
             throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
+        // Читаем stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullResponse = '';
 
-        console.log('🤖 AI response received:', result);
-        return {
-            success: true,
-            data: result
-        };
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            fullResponse += chunk;
+
+            // Вызываем callback для каждого чанка
+            if (onChunk) {
+                onChunk(chunk);
+            }
+        }
+
+        return fullResponse;
 
     } catch (error) {
         console.error('❌ Error getting AI response:', error);
-        return {
-            success: false,
-            error: error.message
-        };
+        throw error;
     }
 };
 
@@ -423,7 +435,7 @@ export const getChatTypeDisplay = (chatType) => {
 export default {
     createChat,
     sendMessage,
-    getAIResponse,
+    getAIResponseStream,
     getUserChats,
     getChatMessages,
     getChatTypeDisplay,
