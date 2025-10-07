@@ -385,10 +385,12 @@ const ChatPage = () => {
                         setMessages(prev => [...prev, botMessage]);
                         setStreamingMessageId(botMessageId);
 
+                        const fileIds = (res.uploaded_files || []).map(f => f.file_id);
+
                         // Получаем streaming ответ от ИИ
                         try {
                             await getAIResponseStream(
-                                text || 'Проанализируй прикрепленные файлы',
+                                text || "Проанализируй текст, извлеченный до этого из файла/файлов:",
                                 chatId,
                                 { tool_type: chatType },
                                 (chunk) => {
@@ -397,7 +399,8 @@ const ChatPage = () => {
                                             ? { ...msg, content: msg.content + chunk }
                                             : msg
                                     ));
-                                }
+                                },
+                                fileIds
                             );
 
                             // Завершаем streaming
@@ -622,8 +625,8 @@ const ChatPage = () => {
     };
 
     // Утилиты
-    const copyToClipboard = (text) => {
-        navigator.clipboard.writeText(text);
+    const copyToClipboard = (ai_response) => {
+        navigator.clipboard.writeText(ai_response);
     };
 
     const formatDateTime = (dateString) => {

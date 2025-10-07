@@ -424,17 +424,17 @@
     transition: transform 0.2s ease;
 }
 
-.message-image:hover {
-    transform: scale(1.02);
-}
+/*.message-image:hover {*/
+/*    transform: scale(1.02);*/
+/*}*/
 
-.message-image img {
-    width: 100%;
-    height: auto;
-    max-height: 300px;
-    object-fit: contain;
-    background: #0d0d0d;
-}
+/*.message-image img {*/
+/*    width: 100%;*/
+/*    height: auto;*/
+/*    max-height: 300px;*/
+/*    object-fit: contain;*/
+/*    background: #0d0d0d;*/
+/*}*/
 
 .message-file {
     display: flex;

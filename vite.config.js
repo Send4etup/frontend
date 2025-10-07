@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     historyApiFallback: true,
     allowedHosts: [
-        'e0a16ff66a2d.ngrok-free.app'
+        'subdivine-anitra-characterless.ngrok-free.dev'
     ]
   }
 })

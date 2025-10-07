@@ -134,7 +134,6 @@ export const sendMessageWithFiles = async (message, files, chatId, chatType) => 
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('backend_token')}`,
                 // 'X-CSRF-Token': csrfService.hasToken() ? csrfService.getToken() : await csrfService.getCsrfToken()
-                // НЕ добавляем Content-Type для FormData!
             },
             credentials: 'include',
             body: formData
@@ -168,16 +167,18 @@ export const sendMessageWithFiles = async (message, files, chatId, chatType) => 
  * @param {string} chatId - ID чата
  * @param {Object} options - Дополнительные параметры
  * @param {Function} onChunk - Callback для каждого чанка текста
+ * @param fileIds - ID файлов
  * @returns {Promise<string>} Полный ответ ИИ
  */
-export const getAIResponseStream = async (message, chatId, options = {}, onChunk) => {
+export const getAIResponseStream = async (message, chatId, options = {}, onChunk, fileIds) => {
     try {
         const requestBody = {
             message: message,
             chat_id: chatId,
             context: {
                 tool_type: options.tool_type || 'general'
-            }
+            },
+            file_ids: fileIds
         };
 
         const response = await fetch(`${API_BASE_URL}/chat/ai-response`, {
