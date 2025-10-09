@@ -548,7 +548,7 @@
 
 .chat-input-wrapper {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 8px;
     background: #1f1f1f;
     border-radius: 24px;

@@ -162,15 +162,23 @@ export const sendMessageWithFiles = async (message, files, chatId, chatType) => 
 };
 
 /**
- * Получение streaming ответа от ИИ
+ * Получение streaming ответа от ИИ с поддержкой отмены
  * @param {string} message - Сообщение пользователя
  * @param {string} chatId - ID чата
  * @param {Object} options - Дополнительные параметры
  * @param {Function} onChunk - Callback для каждого чанка текста
- * @param fileIds - ID файлов
+ * @param {Array} fileIds - ID файлов
+ * @param {AbortController} abortController - Контроллер для отмены запроса
  * @returns {Promise<string>} Полный ответ ИИ
  */
-export const getAIResponseStream = async (message, chatId, options = {}, onChunk, fileIds) => {
+export const getAIResponseStream = async (
+    message,
+    chatId,
+    options = {},
+    onChunk,
+    fileIds = [],
+    abortController = null // ✅ ДОБАВЛЕНО: поддержка AbortController
+) => {
     try {
         const requestBody = {
             message: message,
@@ -181,33 +189,55 @@ export const getAIResponseStream = async (message, chatId, options = {}, onChunk
             file_ids: fileIds
         };
 
-        const response = await fetch(`${API_BASE_URL}/chat/ai-response`, {
+        // ✅ КРИТИЧНО: Добавляем signal для возможности отмены
+        const fetchOptions = {
             method: 'POST',
             headers: await getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(requestBody)
-        });
+        };
+
+        // Добавляем signal если передан abortController
+        if (abortController) {
+            fetchOptions.signal = abortController.signal;
+        }
+
+        const response = await fetch(
+            `${API_BASE_URL}/chat/ai-response`,
+            fetchOptions
+        );
 
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
         }
 
-        // Читаем stream
+        // Читаем streaming ответ
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullResponse = '';
 
         while (true) {
+            // ✅ Проверяем отмену на каждой итерации
+            if (abortController?.signal.aborted) {
+                console.log('⛔ Streaming прерван пользователем');
+                reader.cancel();
+                break;
+            }
+
             const { done, value } = await reader.read();
 
-            if (done) break;
+            if (done) {
+                console.log('✅ Streaming завершен');
+                break;
+            }
 
+            // Декодируем чанк
             const chunk = decoder.decode(value, { stream: true });
             fullResponse += chunk;
 
-            // Вызываем callback для каждого чанка
-            if (onChunk) {
+            // Отправляем чанк в callback
+            if (onChunk && typeof onChunk === 'function') {
                 onChunk(chunk);
             }
         }
@@ -215,8 +245,53 @@ export const getAIResponseStream = async (message, chatId, options = {}, onChunk
         return fullResponse;
 
     } catch (error) {
-        console.error('❌ Error getting AI response:', error);
+        // ✅ Обрабатываем AbortError отдельно
+        if (error.name === 'AbortError') {
+            console.log('⛔ Запрос отменен');
+            throw new Error('STREAMING_CANCELLED');
+        }
+
+        console.error('❌ Streaming error:', error);
         throw error;
+    }
+};
+
+/**
+ * Сохранение частичного ответа ИИ при прерывании
+ * @param {string} chatId - ID чата
+ * @param {string} content - Частичный контент
+ * @returns {Promise<Object>} Результат сохранения
+ */
+export const savePartialAIResponse = async (chatId, content) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat/save-partial-response`, {
+            method: 'POST',
+            headers: await getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify({
+                chat_id: chatId,
+                content: content
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Ошибка сохранения');
+        }
+
+        const result = await response.json();
+        console.log('✅ Partial response saved:', result);
+        return {
+            success: true,
+            data: result
+        };
+
+    } catch (error) {
+        console.error('❌ Error saving partial response:', error);
+        return {
+            success: false,
+            error: error.message
+        };
     }
 };
 

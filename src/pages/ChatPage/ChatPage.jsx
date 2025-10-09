@@ -13,7 +13,13 @@ import ImageModal from './components/ImageModal';
 
 // Utils & Services
 import { pageTransition, itemAnimation } from '../../utils/animations';
-import { getChatMessages, sendMessage, sendMessageWithFiles, getAIResponseStream } from "../../services/chatAPI.js";
+import {
+    getChatMessages,
+    sendMessage,
+    sendMessageWithFiles,
+    getAIResponseStream,
+    savePartialAIResponse  // ✅ ДОБАВЛЕН НОВЫЙ ИМПОРТ
+} from "../../services/chatAPI.js";
 import { getWelcomeMessage } from "../../utils/aiAgentsUtils.js";
 
 // Styles
@@ -35,6 +41,7 @@ const ChatPage = () => {
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isTranscribing, setIsTranscribing] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [attachmentMenu, setAttachmentMenu] = useState(false);
     const [attachedFiles, setAttachedFiles] = useState([]);
@@ -45,8 +52,7 @@ const ChatPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [streamingMessageId, setStreamingMessageId] = useState(null);
-    const [audioChunks, setAudioChunks] = useState([]);
-    const [recordTime, setRecordTime] = useState(0);
+    const attachmentButtonRef = useRef(null);
 
     // Refs
     const messagesEndRef = useRef(null);
@@ -234,44 +240,114 @@ const ChatPage = () => {
     // Функции для работы с аудио
     const startRecording = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            const chunks = [];
-            setMediaRecorder(recorder);
+            // Запрашиваем доступ к микрофону
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,  // Подавление эха
+                    noiseSuppression: true,  // Шумоподавление
+                    autoGainControl: true     // Автоматическая регулировка громкости
+                }
+            });
 
-            recorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    chunks.push(event.data);
+            const options = {
+                mimeType: 'audio/webm;codecs=opus',  // Лучшее качество для речи
+                audioBitsPerSecond: 128000
+            };
+
+            const recorder = new MediaRecorder(stream, options);
+            const chunks = [];
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunks.push(e.data);
                 }
             };
 
-            recorder.onstop = () => {
+            recorder.onstop = async () => {
+                // Останавливаем поток
+                stream.getTracks().forEach(track => track.stop());
+
+                // Создаем blob из записанных кусков
                 const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-                const audioFile = new File([audioBlob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
-                setAttachedFiles((prev) => [...prev, audioFile]);
+
+                // Отправляем на транскрибацию
+                await transcribeAudio(audioBlob);
             };
 
+            setMediaRecorder(recorder);
             recorder.start();
             setIsRecording(true);
-        } catch (err) {
-            console.error("Ошибка доступа к микрофону:", err);
-            setFileErrors(prev => [...prev, "Не удалось получить доступ к микрофону"]);
+
+            console.log('🎤 Запись началась');
+        } catch (error) {
+            console.error('Ошибка доступа к микрофону:', error);
+
+            // Показываем понятную ошибку пользователю
+            const errorMessage = error.name === 'NotAllowedError'
+                ? 'Доступ к микрофону запрещен. Разрешите доступ в настройках браузера.'
+                : 'Не удалось получить доступ к микрофону. Проверьте подключение.';
+
+            setFileErrors(prev => [...prev, errorMessage]);
         }
     };
 
     const stopRecording = () => {
-        if (mediaRecorder) {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
-            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            setIsRecording(false);
+            console.log('🎤 Запись остановлена');
         }
-        setIsRecording(false);
     };
 
     const toggleRecording = () => {
-        if (!isRecording) {
-            startRecording();
-        } else {
+        if (isRecording) {
             stopRecording();
+        } else {
+            startRecording();
+        }
+    };
+
+    const transcribeAudio = async (audioBlob) => {
+        try {
+            setIsLoading(true);
+            setIsTranscribing(true);
+
+
+            // Создаем FormData для отправки
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'recording.webm');
+            formData.append('language', 'ru');  // Указываем язык явно
+
+            // Добавляем контекстный промпт для улучшения точности
+            const contextPrompt = "Это образовательный контент на русском языке о программировании, учебе и образовании.";
+            formData.append('prompt', contextPrompt);
+
+            // Отправляем на бэкенд
+            const response = await fetch('http://localhost:3213/api/transcribe', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Ошибка транскрибации: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.text) {
+                // ✅ Вставляем транскрибированный текст в поле ввода
+                setInputValue(data.text);
+                console.log('✅ Текст распознан:', data.text);
+            } else {
+                throw new Error('Текст не распознан');
+            }
+
+        } catch (error) {
+            console.error('Ошибка транскрибации:', error);
+            setFileErrors(prev => [...prev, `Не удалось распознать речь. Попробуйте еще раз.`]);
+        } finally {
+            setIsLoading(false);
+            setIsTranscribing(false);
         }
     };
 
@@ -320,6 +396,10 @@ const ChatPage = () => {
                         setMessages(prev => [...prev, botMessage]);
                         setStreamingMessageId(botMessageId);
 
+                        // ✅ СОЗДАЕМ AbortController ДЛЯ ЭТОГО ЗАПРОСА
+                        const controller = new AbortController();
+                        streamingControllerRef.current = controller;
+
                         // Получаем streaming ответ от ИИ
                         try {
                             await getAIResponseStream(
@@ -333,7 +413,9 @@ const ChatPage = () => {
                                             ? { ...msg, content: msg.content + chunk }
                                             : msg
                                     ));
-                                }
+                                },
+                                [], // fileIds пусто для текстовых сообщений
+                                controller // ✅ ПЕРЕДАЕМ CONTROLLER
                             );
 
                             // Завершаем streaming
@@ -343,24 +425,37 @@ const ChatPage = () => {
                                     : msg
                             ));
                             setStreamingMessageId(null);
+                            streamingControllerRef.current = null;
 
                         } catch (error) {
                             console.error('AI streaming error:', error);
-                            setMessages(prev => prev.map(msg =>
-                                msg.id === botMessageId
-                                    ? { ...msg, content: 'Ошибка получения ответа. Попробуйте ещё раз.', isStreaming: false }
-                                    : msg
-                            ));
+
+                            // ✅ СПЕЦИАЛЬНАЯ ОБРАБОТКА ОТМЕНЫ
+                            if (error.message === 'STREAMING_CANCELLED') {
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === botMessageId
+                                        ? { ...msg, content: msg.content + '\n\n[Генерация остановлена]', isStreaming: false }
+                                        : msg
+                                ));
+                            } else {
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === botMessageId
+                                        ? { ...msg, content: 'Ошибка получения ответа. Попробуйте ещё раз.', isStreaming: false }
+                                        : msg
+                                ));
+                            }
+
                             setStreamingMessageId(null);
+                            streamingControllerRef.current = null;
                         }
                     }
                 } else {
+                    // АНАЛОГИЧНО ДЛЯ СООБЩЕНИЙ С ФАЙЛАМИ
                     const sendResult = await sendMessageWithFiles(text, optimisticMsg.files, chatId, chatType);
 
                     if (sendResult.success) {
                         const res = sendResult.data;
 
-                        // Обновляем сообщение пользователя
                         setMessages(prev => prev.map(m => m.status === 'sending'
                             ? {
                                 ...m,
@@ -372,7 +467,6 @@ const ChatPage = () => {
                             : m
                         ));
 
-                        // Создаем пустое сообщение бота для streaming
                         const botMessageId = Date.now();
                         const botMessage = {
                             id: botMessageId,
@@ -387,7 +481,10 @@ const ChatPage = () => {
 
                         const fileIds = (res.uploaded_files || []).map(f => f.file_id);
 
-                        // Получаем streaming ответ от ИИ
+                        // ✅ СОЗДАЕМ AbortController
+                        const controller = new AbortController();
+                        streamingControllerRef.current = controller;
+
                         try {
                             await getAIResponseStream(
                                 text || "Проанализируй текст, извлеченный до этого из файла/файлов:",
@@ -400,25 +497,37 @@ const ChatPage = () => {
                                             : msg
                                     ));
                                 },
-                                fileIds
+                                fileIds,
+                                controller // ✅ ПЕРЕДАЕМ CONTROLLER
                             );
 
-                            // Завершаем streaming
                             setMessages(prev => prev.map(msg =>
                                 msg.id === botMessageId
                                     ? { ...msg, isStreaming: false }
                                     : msg
                             ));
                             setStreamingMessageId(null);
+                            streamingControllerRef.current = null;
 
                         } catch (error) {
                             console.error('AI streaming error:', error);
-                            setMessages(prev => prev.map(msg =>
-                                msg.id === botMessageId
-                                    ? { ...msg, content: 'Ошибка получения ответа. Попробуйте ещё раз.', isStreaming: false }
-                                    : msg
-                            ));
+
+                            if (error.message === 'STREAMING_CANCELLED') {
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === botMessageId
+                                        ? { ...msg, content: msg.content + '\n\n[Генерация остановлена]', isStreaming: false }
+                                        : msg
+                                ));
+                            } else {
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === botMessageId
+                                        ? { ...msg, content: 'Ошибка получения ответа. Попробуйте ещё раз.', isStreaming: false }
+                                        : msg
+                                ));
+                            }
+
                             setStreamingMessageId(null);
+                            streamingControllerRef.current = null;
                         }
                     }
                 }
@@ -428,8 +537,8 @@ const ChatPage = () => {
                 setMessages(prev => [...prev, {
                     id: `err-${Date.now()}`,
                     role: 'assistant',
-                    content: 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте ещё раз.' }]);
-
+                    content: 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте ещё раз.'
+                }]);
             } finally {
                 setIsLoading(false);
             }
@@ -438,14 +547,12 @@ const ChatPage = () => {
 
         } catch (error) {
             console.error('💬 Chat error:', error);
-
             const errorMessage = {
                 id: Date.now() + 1,
                 role: 'assistant',
                 content: 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте ещё раз.',
                 timestamp: new Date()
             };
-
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
@@ -465,22 +572,87 @@ const ChatPage = () => {
         }, 100);
     };
 
-    const handleStopGeneration = () => {
+    const handleStopGeneration = async () => {
+        console.log('🛑 Попытка остановить генерацию...');
+
+        // Отменяем fetch-запрос
         if (streamingControllerRef.current) {
             streamingControllerRef.current.abort();
+            console.log('✅ AbortController.abort() вызван');
         }
 
+        // Получаем текущее накопленное содержимое сообщения
+        let accumulatedContent = '';
         if (streamingMessageId) {
-            setMessages(prev =>
-                prev.map(msg =>
-                    msg.id === streamingMessageId
-                        ? { ...msg, isStreaming: false }
-                        : msg
-                )
-            );
-            setStreamingMessageId(null);
+            const streamingMessage = messages.find(msg => msg.id === streamingMessageId);
+            if (streamingMessage) {
+                accumulatedContent = streamingMessage.content;
+            }
         }
+
+        // ✅ СОХРАНЯЕМ ЧАСТИЧНЫЙ ОТВЕТ В БД
+        if (accumulatedContent.trim()) {
+            console.log(`💾 Сохраняем частичный ответ (${accumulatedContent.length} символов)...`);
+
+            try {
+                const saveResult = await savePartialAIResponse(chatId, accumulatedContent);
+
+                if (saveResult.success) {
+                    console.log('✅ Частичный ответ сохранен в БД:', saveResult.data);
+
+                    // Обновляем сообщение с ID из базы данных
+                    setMessages(prev =>
+                        prev.map(msg =>
+                            msg.id === streamingMessageId
+                                ? {
+                                    ...msg,
+                                    id: saveResult.data.message_id, // ID из БД
+                                    content: accumulatedContent + '\n\n[Генерация остановлена]',
+                                    isStreaming: false
+                                }
+                                : msg
+                        )
+                    );
+                } else {
+                    console.error('❌ Не удалось сохранить частичный ответ:', saveResult.error);
+                    // Всё равно обновляем UI
+                    setMessages(prev =>
+                        prev.map(msg =>
+                            msg.id === streamingMessageId
+                                ? {
+                                    ...msg,
+                                    content: accumulatedContent + '\n\n[Генерация остановлена]',
+                                    isStreaming: false
+                                }
+                                : msg
+                        )
+                    );
+                }
+            } catch (error) {
+                console.error('❌ Ошибка при сохранении частичного ответа:', error);
+                // Обновляем UI даже при ошибке
+                setMessages(prev =>
+                    prev.map(msg =>
+                        msg.id === streamingMessageId
+                            ? {
+                                ...msg,
+                                content: accumulatedContent + '\n\n[Генерация остановлена]',
+                                isStreaming: false
+                            }
+                            : msg
+                    )
+                );
+            }
+        } else {
+            // Если контент пустой, просто убираем сообщение
+            setMessages(prev => prev.filter(msg => msg.id !== streamingMessageId));
+        }
+
+        setStreamingMessageId(null);
+        streamingControllerRef.current = null;
         setIsLoading(false);
+
+        console.log('✅ Генерация остановлена и сохранена');
     };
 
     const handleResendLastUserMessage = async () => {
@@ -690,6 +862,7 @@ const ChatPage = () => {
                 isOpen={attachmentMenu}
                 onFileAttach={handleFileAttach}
                 onClose={() => setAttachmentMenu(false)}
+                triggerRef={attachmentButtonRef}
             />
 
             {/* Уведомления об ошибках */}
@@ -711,6 +884,7 @@ const ChatPage = () => {
                 attachedFiles={attachedFiles}
                 isDragOver={isDragOver}
                 isLoading={isLoading}
+                isTranscribing={isTranscribing}
                 isRecording={isRecording}
                 streamingMessageId={streamingMessageId}
                 onSendMessage={handleSendMessage}
@@ -721,6 +895,7 @@ const ChatPage = () => {
                 onDragLeave={handleDragLeave}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
+                attachmentButtonRef={attachmentButtonRef}
             />
         </motion.div>
     );
