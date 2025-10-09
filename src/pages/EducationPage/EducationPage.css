@@ -79,7 +79,7 @@
 
 .news-card {
     flex: 0 0 auto; /* чтобы карточки не сжимались */
-    width: 160px; /* фиксированная ширина карточки */
+    max-width: 160px; /* фиксированная ширина карточки */
     padding: 16px;
     border-radius: 12px;
     cursor: pointer;

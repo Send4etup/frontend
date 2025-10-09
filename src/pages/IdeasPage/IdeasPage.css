@@ -106,9 +106,10 @@
     background: #333333;
 }
 
-.search-icon {
+.idea-search-icon {
     position: absolute;
-    left: 16px;
+    float: right;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
     width: 18px;

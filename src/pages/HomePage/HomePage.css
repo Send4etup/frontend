@@ -7,18 +7,16 @@
     justify-content: center;
 }
 
-.container {
+.home-container {
     width: 100%;
-    max-width: 400px;
-    margin: 0;
-    padding: 0;
+    margin: 18px;
 }
 
 /* Заголовки и цитата */
 .welcome-section {
     text-align: center;
     margin-bottom: 24px;
-    padding: 20px 0;
+    /*padding: 20px 0;*/
 }
 
 .page-title {
@@ -293,10 +291,6 @@
 
 /* Адаптивность */
 @media (max-width: 480px) {
-    .container {
-        max-width: 100%;
-        padding: 0 16px;
-    }
 
     .quick-action-btn {
         padding: 14px 16px;

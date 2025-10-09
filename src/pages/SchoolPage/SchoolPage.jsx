@@ -147,10 +147,10 @@ const SchoolPage = ({ user }) => {
     return (
         <>
             {/* ✅ КОНТЕЙНЕР ДЛЯ УВЕДОМЛЕНИЙ */}
-            <NotificationContainer
-                notifications={notifications}
-                onRemove={removeNotification}
-            />
+            {/*<NotificationContainer*/}
+            {/*    notifications={notifications}*/}
+            {/*    onRemove={removeNotification}*/}
+            {/*/>*/}
             <motion.div
                 className="school-page"
                 initial={{opacity: 0, y: 20}}
@@ -159,7 +159,7 @@ const SchoolPage = ({ user }) => {
                 transition={{duration: 0.5}}
             >
 
-                <div className="container">
+                <div className="home-container">
                     <motion.div
                         className="page-title"
                         initial={{opacity: 0, y: 30}}

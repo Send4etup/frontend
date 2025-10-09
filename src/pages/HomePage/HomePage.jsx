@@ -372,7 +372,7 @@ const HomePage = ({ user: currentUser }) => {
 
     return (
         <div className="home-page">
-            <div className="container">
+            <div className="home-container">
                 {/* Заголовок с приветствием */}
                 <div className="welcome-section">
                     <h1 className="welcome-message">

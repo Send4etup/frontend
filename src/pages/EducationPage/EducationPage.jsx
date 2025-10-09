@@ -157,13 +157,13 @@ const EducationPage = () => {
 
     return (
         <motion.div
-            className="education-page"
+            className="school-page"
             variants={pageTransition}
             initial="initial"
             animate="animate"
             exit="exit"
         >
-            <div className="container">
+            <div className="home-container">
                 <motion.div
                     className="page-title"
                     variants={itemAnimation}
@@ -240,6 +240,12 @@ const EducationPage = () => {
                         })}
                     </div>
                 </motion.div>
+
+                <NewsModal
+                    isOpen={isModalOpen}
+                    onClose={handleCloseModal}
+                    news={selectedNews}
+                />
 
                 {/* Популярные курсы */}
                 {/*<motion.div*/}
@@ -372,11 +378,7 @@ const EducationPage = () => {
 
                 {isLoading && <LoadingSpinner />}
             </div>
-            <NewsModal
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                news={selectedNews}
-            />
+
         </motion.div>
     );
 };

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import BottomNavigation from '../BottomNavigation/BottomNavigation';
-// import './Layout.css';
+import './Layout.css';
 
 const Layout = ({ user }) => {
     const location = useLocation();

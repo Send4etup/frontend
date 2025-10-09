@@ -122,13 +122,13 @@ const ProfilePage = () => {
     if (!isAuthenticated) {
         return (
             <motion.div
-                className="profile-page"
+                className="s"
                 variants={pageTransition}
                 initial="initial"
                 animate="animate"
                 exit="exit"
             >
-                <div className="container">
+                <div className="home-container">
                     <div className="auth-required">
                         <p>Необходимо авторизоваться для просмотра профиля</p>
                     </div>
@@ -146,13 +146,13 @@ const ProfilePage = () => {
     if (profileError) {
         return (
             <motion.div
-                className="profile-page"
+                className="school-page"
                 variants={pageTransition}
                 initial="initial"
                 animate="animate"
                 exit="exit"
             >
-                <div className="container">
+                <div className="home-container">
                     <div className="error-message">
                         <p>Ошибка загрузки профиля: {profileError}</p>
                         <button onClick={loadProfileData}>Попробовать снова</button>
@@ -172,7 +172,7 @@ const ProfilePage = () => {
                 animate="animate"
                 exit="exit"
             >
-                <div className="container">
+                <div className="home-container">
                     <div className="edit-header">
                         <h1 className="page-title">Редактировать профиль</h1>
                         <motion.button
@@ -271,13 +271,13 @@ const ProfilePage = () => {
 
     return (
         <motion.div
-            className="profile-page"
+            className="school-page"
             variants={pageTransition}
             initial="initial"
             animate="animate"
             exit="exit"
         >
-            <div className="container">
+            <div className="home-container">
                 <motion.div
                     className="page-title"
                     variants={itemAnimation}
@@ -321,14 +321,14 @@ const ProfilePage = () => {
                         </div>
                     </div>
 
-                    <motion.button
-                        onClick={() => setIsEditing(true)}
-                        className="btn btn-white"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        Редактировать профиль
-                    </motion.button>
+                    {/*<motion.button*/}
+                    {/*    onClick={() => setIsEditing(true)}*/}
+                    {/*    className="btn btn-white"*/}
+                    {/*    whileHover={{ scale: 1.05 }}*/}
+                    {/*    whileTap={{ scale: 0.95 }}*/}
+                    {/*>*/}
+                    {/*    Редактировать профиль*/}
+                    {/*</motion.button>*/}
                 </motion.div>
 
                 <motion.div

@@ -155,13 +155,13 @@ const IdeasPage = () => {
 
     return (
         <motion.div
-            className="ideas-page"
+            className="school-page"
             variants={pageTransition}
             initial="initial"
             animate="animate"
             exit="exit"
         >
-            <div className="container">
+            <div className="home-container">
                 <motion.div
                     className="page-header"
                     variants={itemAnimation}
@@ -203,7 +203,7 @@ const IdeasPage = () => {
                     className="search-bar"
                     variants={itemAnimation}
                 >
-                    <Search className="search-icon" />
+                    <Search className="idea-search-icon" />
                     <input
                         type="text"
                         value={searchQuery}
