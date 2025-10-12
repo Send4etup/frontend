@@ -10,6 +10,9 @@ import ErrorNotifications from './components/ErrorNotifications';
 import AttachedFilesList from './components/AttachedFilesList';
 import ChatInput from './components/ChatInput';
 import ImageModal from './components/ImageModal';
+import ChatSettings from './components/ChatSettings/ChatSettings';
+import { getDefaultSettings } from './components/ChatSettings/settingsConfig';
+
 
 // Utils & Services
 import { pageTransition, itemAnimation } from '../../utils/animations';
@@ -33,11 +36,9 @@ const ChatPage = () => {
     // Props from navigation
     const { chatType } = location.state || '';
     const { title } = location.state || 'ТоварищБот';
-    const { toolConfig } = location.state || 'Помощник';
     const { agentPrompt } = location.state || 'Ты обычный помощник ученика';
 
     // State
-    const [chat, setChat] = useState({});
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -53,16 +54,17 @@ const ChatPage = () => {
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [streamingMessageId, setStreamingMessageId] = useState(null);
     const attachmentButtonRef = useRef(null);
+    const [showSettings, setShowSettings] = useState(false);
+    const [chatSettings, setChatSettings] = useState(null);
 
     // Refs
     const messagesEndRef = useRef(null);
     const streamingControllerRef = useRef(null);
-    const recordIntervalRef = useRef(null);
 
     // Эффекты для инициализации
     useEffect(() => {
         if (location.state) {
-            const { initialMessage, isToolDescription, isRegularMessage, attachedFiles } = location.state;
+            const { initialMessage, isToolDescription, attachedFiles } = location.state;
 
             // Если есть файлы, не обрабатываем initialMessage здесь
             if (attachedFiles && attachedFiles.length > 0) {
@@ -164,6 +166,37 @@ const ChatPage = () => {
             return () => clearTimeout(timer);
         }
     }, [attachedFiles, isRecording]);
+
+    useEffect(() => {
+        // Загружаем настройки из localStorage
+        const loadChatSettings = () => {
+            try {
+                const savedSettings = localStorage.getItem('chatSettings');
+                if (savedSettings) {
+                    const allSettings = JSON.parse(savedSettings);
+                    const currentChatSettings = allSettings[chatId];
+
+                    if (currentChatSettings) {
+                        setChatSettings(currentChatSettings);
+                    } else {
+                        // Если настроек нет, используем дефолтные
+                        const defaults = getDefaultSettings(chatType);
+                        setChatSettings(defaults);
+                    }
+                } else {
+                    // Если в localStorage ничего нет, используем дефолтные
+                    const defaults = getDefaultSettings(chatType);
+                    setChatSettings(defaults);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки настроек:', error);
+                const defaults = getDefaultSettings(chatType);
+                setChatSettings(defaults);
+            }
+        };
+
+        loadChatSettings();
+    }, [chatId, chatType]);
 
     // Функции загрузки сообщений
     const loadMessages = async () => {
@@ -355,6 +388,10 @@ const ChatPage = () => {
     const handleSendMessage = async () => {
         if (!inputValue.trim() && attachedFiles.length === 0) return;
 
+        const modifiedPrompt = buildSystemPrompt();
+        const temperature = chatSettings?.temperature || 0.7;
+
+
         const text = inputValue.trim();
 
         try {
@@ -405,7 +442,11 @@ const ChatPage = () => {
                             await getAIResponseStream(
                                 text,
                                 chatId,
-                                { tool_type: chatType },
+                                {
+                                    tool_type: chatType,
+                                    agent_prompt: modifiedPrompt,  // ✅ ДОБАВИЛИ
+                                    temperature: temperature        // ✅ ДОБАВИЛИ
+                                },
                                 (chunk) => {
                                     // Обновляем сообщение с каждым чанком
                                     setMessages(prev => prev.map(msg =>
@@ -489,7 +530,11 @@ const ChatPage = () => {
                             await getAIResponseStream(
                                 text || "Проанализируй текст, извлеченный до этого из файла/файлов:",
                                 chatId,
-                                { tool_type: chatType },
+                                {
+                                    tool_type: chatType,
+                                    agent_prompt: modifiedPrompt,  // ✅ ДОБАВИЛИ
+                                    temperature: temperature        // ✅ ДОБАВИЛИ
+                                },
                                 (chunk) => {
                                     setMessages(prev => prev.map(msg =>
                                         msg.id === botMessageId
@@ -815,6 +860,330 @@ const ChatPage = () => {
         }
     };
 
+    /**
+     * Открытие модального окна настроек
+     */
+    const handleOpenSettings = () => {
+        setShowSettings(true);
+    };
+
+    /**
+     * Закрытие модального окна настроек
+     */
+    const handleCloseSettings = () => {
+        setShowSettings(false);
+    };
+
+    /**
+     * Сохранение настроек
+     */
+    const handleSaveSettings = (newSettings) => {
+        try {
+            // Обновляем состояние
+            setChatSettings(newSettings);
+
+            // Сохраняем в localStorage
+            const savedSettings = localStorage.getItem('chatSettings');
+            const allSettings = savedSettings ? JSON.parse(savedSettings) : {};
+
+            allSettings[chatId] = newSettings;
+
+            localStorage.setItem('chatSettings', JSON.stringify(allSettings));
+
+            console.log('Настройки сохранены:', newSettings);
+        } catch (error) {
+            console.error('Ошибка сохранения настроек:', error);
+            alert('Не удалось сохранить настройки');
+        }
+    };
+
+    /**
+     * Построение системного промпта с учетом пользовательских настроек
+     * Применяет общие и специфичные настройки к базовому промпту агента
+     */
+    const buildSystemPrompt = () => {
+        let systemPrompt = agentPrompt; // Базовый промпт из агента
+
+        if (!chatSettings) return systemPrompt;
+
+        // ===================================
+        // ОБЩИЕ НАСТРОЙКИ (для всех типов)
+        // ===================================
+
+        // Длина ответа
+        if (chatSettings.maxLength) {
+            const lengthInstructions = {
+                short: '\nДавай краткие и лаконичные ответы (1-3 предложения).',
+                medium: '\nДавай ответы средней длины с необходимыми деталями.',
+                detailed: '\nДавай подробные и развернутые ответы с примерами и пояснениями.'
+            };
+            systemPrompt += lengthInstructions[chatSettings.maxLength] || '';
+        }
+
+        // Язык общения
+        if (chatSettings.language === 'en') {
+            systemPrompt += '\nОтвечай на английском языке (English language).';
+        }
+
+        // ===================================
+        // СПЕЦИФИЧНЫЕ НАСТРОЙКИ ПО ТИПАМ
+        // ===================================
+
+        switch (chatType) {
+            // === ОБЩИЙ ЧАТ ===
+            case 'general':
+                if (chatSettings.responseStyle === 'friendly') {
+                    systemPrompt += '\nИспользуй дружелюбный и теплый тон общения.';
+                } else if (chatSettings.responseStyle === 'formal') {
+                    systemPrompt += '\nИспользуй формальный и профессиональный стиль.';
+                } else if (chatSettings.responseStyle === 'casual') {
+                    systemPrompt += '\nОбщайся неформально, как друг с другом.';
+                }
+                break;
+
+            // === СОЗДАНИЕ ИЗОБРАЖЕНИЙ ===
+            case 'image':
+                if (chatSettings.imageStyle) {
+                    systemPrompt += `\nПредпочитаемый стиль изображений: ${chatSettings.imageStyle}.`;
+                }
+                if (chatSettings.aspectRatio) {
+                    systemPrompt += `\nФормат изображения: ${chatSettings.aspectRatio}.`;
+                }
+                if (chatSettings.quality === 'hd') {
+                    systemPrompt += '\nИспользуй настройки высокого качества (HD).';
+                }
+                if (chatSettings.detailLevel === 'simple') {
+                    systemPrompt += '\nСоздавай простые промпты без излишних деталей.';
+                } else if (chatSettings.detailLevel === 'detailed') {
+                    systemPrompt += '\nСоздавай детальные промпты с описанием освещения, композиции и стиля.';
+                }
+                break;
+
+            // === КОДИНГ ===
+            case 'coding':
+                if (chatSettings.withComments) {
+                    systemPrompt += '\nВАЖНО: Добавляй подробные комментарии к коду на русском языке, объясняя что делает каждая часть.';
+                } else {
+                    systemPrompt += '\nПиши код без комментариев, только чистый код.';
+                }
+
+                if (chatSettings.codeStyle === 'clean') {
+                    systemPrompt += '\nИспользуй принципы Clean Code: понятные имена переменных, короткие функции, минимум дублирования, читаемый код.';
+                } else if (chatSettings.codeStyle === 'minimal') {
+                    systemPrompt += '\nПиши максимально минималистичный и компактный код без лишних абстракций.';
+                } else if (chatSettings.codeStyle === 'verbose') {
+                    systemPrompt += '\nПиши подробный код с явными проверками, детальной обработкой ошибок и максимальной ясностью.';
+                }
+
+                if (chatSettings.defaultLanguage) {
+                    const langMap = {
+                        javascript: 'JavaScript',
+                        python: 'Python',
+                        java: 'Java',
+                        cpp: 'C++',
+                        csharp: 'C#',
+                        go: 'Go',
+                        rust: 'Rust'
+                    };
+                    systemPrompt += `\nИспользуй ${langMap[chatSettings.defaultLanguage]} в качестве основного языка для примеров, если не указано иное.`;
+                }
+
+                if (chatSettings.explainSteps) {
+                    systemPrompt += '\nОбъясняй решение пошагово: что делаем, почему так, какой результат.';
+                }
+                break;
+
+            // === БРЕЙНШТОРМ ===
+            case 'brainstorm':
+                if (chatSettings.ideasCount) {
+                    const countMap = {
+                        '3-5': '3-5',
+                        '5-7': '5-7',
+                        '8-10': '8-10'
+                    };
+                    systemPrompt += `\nГенерируй ${countMap[chatSettings.ideasCount]} разнообразных идей за раз.`;
+                }
+
+                if (chatSettings.creativityLevel === 'practical') {
+                    systemPrompt += '\nФокусируйся на практичных и реализуемых идеях.';
+                } else if (chatSettings.creativityLevel === 'wild') {
+                    systemPrompt += '\nПредлагай смелые, необычные и креативные идеи, выходящие за рамки стандартного мышления.';
+                }
+
+                if (chatSettings.includeExamples) {
+                    systemPrompt += '\nК каждой идее добавляй конкретный пример применения.';
+                }
+                break;
+
+            // === ОТМАЗКИ ===
+            case 'excuse':
+                { const styleMap = {
+                    formal: 'официальный и уважительный',
+                    polite: 'вежливый и дипломатичный',
+                    casual: 'неформальный и дружеский',
+                    creative: 'креативный и оригинальный'
+                };
+                if (chatSettings.excuseStyle) {
+                    systemPrompt += `\nИспользуй ${styleMap[chatSettings.excuseStyle]} стиль в формулировках.`;
+                }
+
+                if (chatSettings.variantsCount) {
+                    systemPrompt += `\nПредлагай ${chatSettings.variantsCount} варианта отмазок разного тона.`;
+                }
+                break; }
+
+            // === ОБЪЯСНЕНИЕ ТЕМ ===
+            case 'explain_topic':
+                if (chatSettings.explanationDepth === 'simple') {
+                    systemPrompt += '\nОбъясняй максимально просто, как для начинающего. Только основы без углубления.';
+                } else if (chatSettings.explanationDepth === 'deep') {
+                    systemPrompt += '\nДавай глубокое объяснение с деталями, нюансами и дополнительными аспектами темы.';
+                }
+
+                if (chatSettings.useAnalogies) {
+                    systemPrompt += '\nИспользуй аналогии и примеры из повседневной жизни для лучшего понимания.';
+                }
+
+                if (chatSettings.checkUnderstanding) {
+                    systemPrompt += '\nЗадавай проверочные вопросы, чтобы убедиться в понимании материала.';
+                }
+                break;
+
+            // === ПОДГОТОВКА К ЭКЗАМЕНАМ ===
+            case 'exam_prep':
+                if (chatSettings.subject) {
+                    const subjectMap = {
+                        math: 'математике',
+                        physics: 'физике',
+                        chemistry: 'химии',
+                        biology: 'биологии',
+                        history: 'истории',
+                        literature: 'литературе',
+                        russian: 'русскому языку',
+                        english: 'английскому языку'
+                    };
+                    systemPrompt += `\nФокусируйся на подготовке по ${subjectMap[chatSettings.subject]}.`;
+                }
+
+                if (chatSettings.difficulty === 'basic') {
+                    systemPrompt += '\nИспользуй базовый уровень сложности заданий.';
+                } else if (chatSettings.difficulty === 'high') {
+                    systemPrompt += '\nИспользуй задания повышенной сложности.';
+                }
+
+                if (chatSettings.includePractice) {
+                    systemPrompt += '\nДобавляй тренировочные задания для закрепления материала.';
+                }
+                break;
+
+            // === КОНСПЕКТЫ ===
+            case 'make_notes':
+                { const formatMap = {
+                    bullets: 'маркированных списках',
+                    paragraphs: 'связных параграфах',
+                    outline: 'виде плана-схемы с подпунктами',
+                    table: 'табличном формате'
+                };
+                if (chatSettings.format) {
+                    systemPrompt += `\nСтруктурируй информацию в ${formatMap[chatSettings.format]}.`;
+                }
+
+                if (chatSettings.detailLevel === 'brief') {
+                    systemPrompt += '\nДелай краткий конспект: только ключевые тезисы.';
+                } else if (chatSettings.detailLevel === 'detailed') {
+                    systemPrompt += '\nДелай подробный конспект со всеми важными деталями и пояснениями.';
+                }
+
+                if (chatSettings.highlightKey) {
+                    systemPrompt += '\nВыделяй ключевые понятия и важные моменты (жирным текстом или эмодзи ⭐).';
+                }
+                break; }
+
+            // === РЕШЕНИЕ ПО ФОТО ===
+            case 'photo_solve':
+                if (chatSettings.solutionStyle === 'hints') {
+                    systemPrompt += '\nДавай только подсказки и наводящие вопросы, не решай полностью.';
+                } else if (chatSettings.solutionStyle === 'teaching') {
+                    systemPrompt += '\nРеши задачу пошагово с объяснением каждого шага, обучая методу решения.';
+                } else if (chatSettings.solutionStyle === 'detailed') {
+                    systemPrompt += '\nПредоставь полное детальное решение с пояснениями и проверкой.';
+                }
+
+                if (chatSettings.showSteps) {
+                    systemPrompt += '\nРазбивай решение на четкие пронумерованные шаги.';
+                }
+
+                if (chatSettings.explainLogic) {
+                    systemPrompt += '\nОбъясняй логику: почему используем именно этот метод, что дает каждый шаг.';
+                }
+                break;
+
+            // === НАПИСАНИЕ РАБОТ ===
+            case 'write_work':
+                { if (chatSettings.workType) {
+                    systemPrompt += `\nПомогай создавать ${chatSettings.workType === 'essay' ? 'сочинение' :
+                        chatSettings.workType === 'report' ? 'доклад' :
+                            chatSettings.workType === 'abstract' ? 'реферат' : 'статью'}.`;
+                }
+
+                const toneMapWork = {
+                    formal: 'официальным академическим',
+                    neutral: 'нейтральным информативным',
+                    casual: 'разговорным легким'
+                };
+                if (chatSettings.tone) {
+                    systemPrompt += `\nИспользуй ${toneMapWork[chatSettings.tone]} стиль изложения.`;
+                }
+
+                if (chatSettings.helpLevel === 'ideas') {
+                    systemPrompt += '\nТолько предлагай идеи и тезисы, не пиши текст за ученика.';
+                } else if (chatSettings.helpLevel === 'draft') {
+                    systemPrompt += '\nПомогай создавать черновики с конкретными формулировками.';
+                }
+                break; }
+
+            // === АНАЛИЗ ОШИБОК ===
+            case 'analyze_mistake':
+                if (chatSettings.analysisDepth === 'quick') {
+                    systemPrompt += '\nДелай быстрый обзор ошибки: в чем проблема и как исправить.';
+                } else if (chatSettings.analysisDepth === 'thorough') {
+                    systemPrompt += '\nПроводи тщательный анализ: причина ошибки, правильный подход, типичные заблуждения.';
+                }
+
+                if (chatSettings.provideSimilar) {
+                    systemPrompt += '\nПредлагай 2-3 похожих задания для тренировки и закрепления.';
+                }
+
+                if (chatSettings.explainConcepts) {
+                    systemPrompt += '\nОбъясняй теоретические концепции, лежащие в основе задания.';
+                }
+                break;
+
+            // === ПОДДЕРЖКА НАСТРОЕНИЯ ===
+            case 'mood_support':
+                { const supportMap = {
+                    listening: 'слушающий и понимающий',
+                    empathetic: 'эмпатичный и сочувствующий',
+                    practical: 'практичный с конкретными советами',
+                    motivating: 'мотивирующий и вдохновляющий'
+                };
+                if (chatSettings.supportStyle) {
+                    systemPrompt += `\nИспользуй ${supportMap[chatSettings.supportStyle]} подход в общении.`;
+                }
+
+                if (chatSettings.offerTechniques) {
+                    systemPrompt += '\nПредлагай техники релаксации, дыхательные упражнения и методы снятия стресса.';
+                }
+
+                if (chatSettings.askQuestions) {
+                    systemPrompt += '\nЗадавай открытые вопросы, помогающие человеку осознать и проработать ситуацию.';
+                }
+                break; }
+        }
+
+        return systemPrompt;
+    };
+
     return (
         <motion.div
             className="chat-page"
@@ -838,6 +1207,7 @@ const ChatPage = () => {
                     chatType={chatType}
                     agentPrompt={agentPrompt}
                     onNavigateBack={() => navigate(-1)}
+                    onOpenSettings={handleOpenSettings}
                 />
             </motion.div>
 
@@ -897,6 +1267,15 @@ const ChatPage = () => {
                 onDrop={handleDrop}
                 attachmentButtonRef={attachmentButtonRef}
             />
+
+            <ChatSettings
+                isOpen={showSettings}
+                onClose={handleCloseSettings}
+                onSave={handleSaveSettings}
+                chatType={chatType}
+                currentSettings={chatSettings}
+            />
+
         </motion.div>
     );
 };

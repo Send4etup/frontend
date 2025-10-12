@@ -7,7 +7,8 @@ export default defineConfig({
   server: {
     historyApiFallback: true,
     allowedHosts: [
-        'subdivine-anitra-characterless.ngrok-free.dev'
+        'subdivine-anitra-characterless.ngrok-free.dev',
+        'tovarishbot.store'
     ]
   }
 })

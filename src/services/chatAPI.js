@@ -6,8 +6,8 @@
  * API функции для работы с чатами ТоварищБота
  */
 
-// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213/api';
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://back.grigpe3j.beget.tech/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213/api';
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://back.grigpe3j.beget.tech/api';
 
 /**
  * Получение заголовков для запросов с авторизацией
@@ -185,7 +185,9 @@ export const getAIResponseStream = async (
             message: message,
             chat_id: chatId,
             context: {
-                tool_type: options.tool_type || 'general'
+                tool_type: options.tool_type || 'general',
+                agent_prompt: options.agent_prompt,
+                temperature: options.temperature || 0.7,
             },
             file_ids: fileIds
         };

@@ -1,8 +1,8 @@
 // src/services/csrfService.js
 class CSRFService {
     constructor() {
-        // this.apiBaseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213';
-        this.apiBaseUrl = import.meta.env.VITE_API_URL || 'https://back.grigpe3j.beget.tech';
+        this.apiBaseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213';
+        // this.apiBaseUrl = import.meta.env.VITE_API_URL || 'https://back.grigpe3j.beget.tech';
     }
 
     async getCsrfToken() {
