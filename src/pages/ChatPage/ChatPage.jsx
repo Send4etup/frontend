@@ -21,6 +21,7 @@ import {
     sendMessage,
     sendMessageWithFiles,
     getAIResponseStream,
+    generateImage,
     savePartialAIResponse
 } from "../../services/chatAPI.js";
 import { getWelcomeMessage } from "../../utils/aiAgentsUtils.js";
@@ -329,6 +330,33 @@ const ChatPage = () => {
         setAttachedFiles(prev => prev.filter(file => file !== fileToRemove));
     };
 
+    const handleRegenerateImage = async (file) => {
+        console.log('🔄 Regenerating image for file:', file);
+
+        // Берём оригинальный промпт из файла
+        const originalPrompt = file?.original_prompt || file?.originalPrompt || '';
+
+        if (!originalPrompt) {
+            console.error('❌ No original prompt found for regeneration');
+            return;
+        }
+
+        // Отправляем запрос на генерацию
+        setIsLoading(true);
+
+        try {
+            await sendMessage(
+                originalPrompt,
+                [],
+                'images' // Указываем тип чата для генерации
+            );
+        } catch (error) {
+            console.error('❌ Error regenerating image:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Функции для работы с аудио
     const startRecording = async () => {
         try {
@@ -550,118 +578,57 @@ const ChatPage = () => {
 
     // Функции для отправки сообщений
     const handleSendMessage = async () => {
-        if (!inputValue.trim() && attachedFiles.length === 0) alert("bee");
+        if (!inputValue.trim() && attachedFiles.length === 0) return;
 
         const modifiedPrompt = buildSystemPrompt();
         const temperature = chatSettings?.temperature || 0.7;
-
-
         const text = inputValue.trim();
 
+        // ✅ ОПРЕДЕЛЯЕМ: это запрос на генерацию изображения?
+        const isImageGeneration = chatType === 'images' || chatType === 'image';
+
         try {
+            // Создаём оптимистичное сообщение пользователя
             const optimisticMsg = {
                 role: 'user',
                 content: text,
                 timestamp: new Date().toISOString(),
-                files: attachedFiles.length > 0 ? [...attachedFiles] : undefined,
+                // files: attachedFiles.length > 0 ? [...attachedFiles] : undefined,
                 status: 'sending'
             };
 
             setMessages(prev => [...prev, optimisticMsg]);
             setInputValue('');
-            setIsLoading(true);
             setAttachedFiles([]);
+            setIsLoading(true);
 
-            try {
-                if (attachedFiles.length === 0) {
-                    const sendResult = await sendMessage(text, chatId, chatType);
+            // ============================================================
+            // 🎨 ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ (без файлов)
+            // ============================================================
+            if (isImageGeneration) {
+                console.log('🎨 Starting image generation...');
 
-                    if (sendResult.success) {
-                        const res = sendResult.data;
+                try {
+                    let fileIds = [];
 
-                        // Обновляем статус отправленного сообщения
-                        setMessages(prev => prev.map(m => m.status === 'sending'
-                            ? { ...m, id: res.message_id ?? m.id, status: 'sent', timestamp: res.timestamp ?? m.timestamp }
-                            : m
-                        ));
+                    // 1. Если есть файлы - сначала отправляем их
+                    if (attachedFiles.length > 0) {
+                        console.log('📎 Отправляем файлы для анализа...');
 
-                        // Создаем пустое сообщение бота для streaming
-                        const botMessageId = Date.now();
-                        const botMessage = {
-                            id: botMessageId,
-                            role: 'assistant',
-                            content: '',
-                            timestamp: new Date(),
-                            isStreaming: true
-                        };
+                        const sendResult = await sendMessageWithFiles(
+                            text || "Проанализируй это изображение и создай новое на его основе",
+                            attachedFiles,
+                            chatId,
+                            chatType
+                        );
 
-                        setMessages(prev => [...prev, botMessage]);
-                        setStreamingMessageId(botMessageId);
-
-                        // ✅ СОЗДАЕМ AbortController ДЛЯ ЭТОГО ЗАПРОСА
-                        const controller = new AbortController();
-                        streamingControllerRef.current = controller;
-
-                        // Получаем streaming ответ от ИИ
-                        try {
-                            await getAIResponseStream(
-                                text,
-                                chatId,
-                                {
-                                    tool_type: chatType,
-                                    agent_prompt: modifiedPrompt,  // ✅ ДОБАВИЛИ
-                                    temperature: temperature        // ✅ ДОБАВИЛИ
-                                },
-                                (chunk) => {
-                                    // Обновляем сообщение с каждым чанком
-                                    setMessages(prev => prev.map(msg =>
-                                        msg.id === botMessageId
-                                            ? { ...msg, content: msg.content + chunk }
-                                            : msg
-                                    ));
-                                },
-                                [], // fileIds пусто для текстовых сообщений
-                                controller // ✅ ПЕРЕДАЕМ CONTROLLER
-                            );
-
-                            // Завершаем streaming
-                            setMessages(prev => prev.map(msg =>
-                                msg.id === botMessageId
-                                    ? { ...msg, isStreaming: false }
-                                    : msg
-                            ));
-                            setStreamingMessageId(null);
-                            streamingControllerRef.current = null;
-
-                        } catch (error) {
-                            console.error('AI streaming error:', error);
-
-                            // ✅ СПЕЦИАЛЬНАЯ ОБРАБОТКА ОТМЕНЫ
-                            if (error.message === 'STREAMING_CANCELLED') {
-                                setMessages(prev => prev.map(msg =>
-                                    msg.id === botMessageId
-                                        ? { ...msg, content: msg.content + '\n\n[Генерация остановлена]', isStreaming: false }
-                                        : msg
-                                ));
-                            } else {
-                                setMessages(prev => prev.map(msg =>
-                                    msg.id === botMessageId
-                                        ? { ...msg, content: 'Ошибка получения ответа. Попробуйте ещё раз.', isStreaming: false }
-                                        : msg
-                                ));
-                            }
-
-                            setStreamingMessageId(null);
-                            streamingControllerRef.current = null;
+                        if (!sendResult.success) {
+                            throw new Error(sendResult.error || 'Не удалось отправить файлы');
                         }
-                    }
-                } else {
-                    // АНАЛОГИЧНО ДЛЯ СООБЩЕНИЙ С ФАЙЛАМИ
-                    const sendResult = await sendMessageWithFiles(text, optimisticMsg.files, chatId, chatType);
 
-                    if (sendResult.success) {
                         const res = sendResult.data;
 
+                        // Обновляем статус отправленного сообщения с файлами
                         setMessages(prev => prev.map(m => m.status === 'sending'
                             ? {
                                 ...m,
@@ -673,97 +640,336 @@ const ChatPage = () => {
                             : m
                         ));
 
-                        const botMessageId = Date.now();
-                        const botMessage = {
-                            id: botMessageId,
+                        // Получаем ID загруженных файлов
+                        fileIds = (res.uploaded_files || []).map(f => f.file_id);
+                        console.log('✅ Файлы загружены, fileIds:', fileIds);
+
+                    } else {
+                        // Если файлов нет - просто отправляем текст
+                        const sendResult = await sendMessage(text, chatId, chatType);
+
+                        if (!sendResult.success) {
+                            throw new Error(sendResult.error || 'Не удалось отправить сообщение');
+                        }
+
+                        const res = sendResult.data;
+
+                        // Обновляем статус отправленного сообщения
+                        setMessages(prev => prev.map(m => m.status === 'sending'
+                            ? {
+                                ...m,
+                                id: res.message_id ?? m.id,
+                                status: 'sent',
+                                timestamp: res.timestamp ?? m.timestamp
+                            }
+                            : m
+                        ));
+                    }
+
+                    // 2. Добавляем placeholder для генерируемого изображения
+                    const generatingMessageId = Date.now() + 1;
+                    const generatingMessage = {
+                        id: generatingMessageId,
+                        role: 'assistant',
+                        content: fileIds.length > 0
+                            ? '🔍 Анализирую изображение и создаю новое...'
+                            : '🎨 Генерирую изображение...',
+                        files: [{
+                            isGenerated: true,
+                            isGenerating: true,
+                            original_prompt: text,
+                            type: 'image/png',
+                        }],
+                        timestamp: new Date().toISOString(),
+                    };
+
+                    setMessages(prev => [...prev, generatingMessage]);
+
+                    // 3. ✅ ЗАПРОС НА ГЕНЕРАЦИЮ ЧЕРЕЗ chatAPI.js (с файлами если есть)
+                    const imageResult = await generateImage(
+                        chatId,
+                        text || "Создай изображение на основе загруженных файлов",
+                        modifiedPrompt,
+                        {
+                            tool_type: chatType,
+                            temperature: temperature
+                        },
+                        fileIds // ✅ Передаём file_ids для анализа
+                    );
+
+                    // 4. Обрабатываем результат
+                    if (imageResult.success) {
+                        console.log('✅ Image generated successfully!');
+
+                        // Формируем текст сообщения
+                        let messageContent = imageResult.data.message;
+
+                        // Если был анализ файлов - добавляем его
+                        if (imageResult.data.analysis) {
+                            messageContent = `${imageResult.data.analysis}\n\n${messageContent}`;
+                        }
+
+                        // Заменяем placeholder на готовое изображение
+                        const imageMessage = {
+                            id: Date.now() + 2,
                             role: 'assistant',
-                            content: '',
-                            timestamp: new Date(),
-                            isStreaming: true
+                            content: messageContent,
+                            files: [{
+                                isGenerated: true,
+                                isGenerating: false,
+                                url: imageResult.data.image_url,
+                                revised_prompt: imageResult.data.revised_prompt,
+                                original_prompt: text,
+                                type: 'image/png',
+                                name: `generated-${Date.now()}.png`,
+                                size: 0,
+                            }],
+                            timestamp: new Date().toISOString(),
                         };
 
-                        setMessages(prev => [...prev, botMessage]);
-                        setStreamingMessageId(botMessageId);
+                        // Удаляем placeholder и добавляем готовое изображение
+                        setMessages(prev => {
+                            const filtered = prev.filter(msg => msg.id !== generatingMessageId);
+                            return [...filtered, imageMessage];
+                        });
 
-                        const fileIds = (res.uploaded_files || []).map(f => f.file_id);
-
-                        // ✅ СОЗДАЕМ AbortController
-                        const controller = new AbortController();
-                        streamingControllerRef.current = controller;
-
-                        try {
-                            await getAIResponseStream(
-                                text || "Проанализируй текст, извлеченный до этого из файла/файлов:",
-                                chatId,
-                                {
-                                    tool_type: chatType,
-                                    agent_prompt: modifiedPrompt,  // ✅ ДОБАВИЛИ
-                                    temperature: temperature        // ✅ ДОБАВИЛИ
-                                },
-                                (chunk) => {
-                                    setMessages(prev => prev.map(msg =>
-                                        msg.id === botMessageId
-                                            ? { ...msg, content: msg.content + chunk }
-                                            : msg
-                                    ));
-                                },
-                                fileIds,
-                                controller // ✅ ПЕРЕДАЕМ CONTROLLER
-                            );
-
-                            setMessages(prev => prev.map(msg =>
-                                msg.id === botMessageId
-                                    ? { ...msg, isStreaming: false }
-                                    : msg
-                            ));
-                            setStreamingMessageId(null);
-                            streamingControllerRef.current = null;
-
-                        } catch (error) {
-                            console.error('AI streaming error:', error);
-
-                            if (error.message === 'STREAMING_CANCELLED') {
-                                setMessages(prev => prev.map(msg =>
-                                    msg.id === botMessageId
-                                        ? { ...msg, content: msg.content + '\n\n[Генерация остановлена]', isStreaming: false }
-                                        : msg
-                                ));
-                            } else {
-                                setMessages(prev => prev.map(msg =>
-                                    msg.id === botMessageId
-                                        ? { ...msg, content: 'Ошибка получения ответа. Попробуйте ещё раз.', isStreaming: false }
-                                        : msg
-                                ));
-                            }
-
-                            setStreamingMessageId(null);
-                            streamingControllerRef.current = null;
-                        }
+                    } else {
+                        throw new Error(imageResult.error || 'Не удалось сгенерировать изображение');
                     }
+
+                } catch (error) {
+                    console.error('❌ Image generation error:', error);
+
+                    // Удаляем placeholder при ошибке
+                    setMessages(prev => prev.filter(msg =>
+                        !(msg.files && msg.files[0]?.isGenerating)
+                    ));
+
+                    // Показываем сообщение об ошибке
+                    const errorMessage = {
+                        id: Date.now() + 3,
+                        role: 'assistant',
+                        content: `😔 Не удалось создать изображение: ${error.message}`,
+                        timestamp: new Date().toISOString(),
+                    };
+
+                    setMessages(prev => [...prev, errorMessage]);
+                } finally {
+                    setIsLoading(false);
                 }
 
-            } catch (error) {
-                console.error('💬 Chat error:', error);
-                setMessages(prev => [...prev, {
-                    id: `err-${Date.now()}`,
-                    role: 'assistant',
-                    content: 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте ещё раз.'
-                }]);
-            } finally {
-                setIsLoading(false);
+                return;
             }
 
-            setAttachedFiles([]);
+            // ============================================================
+            // 💬 ОБЫЧНЫЕ ТЕКСТОВЫЕ СООБЩЕНИЯ (без файлов)
+            // ============================================================
+            if (attachedFiles.length === 0) {
+                const sendResult = await sendMessage(text, chatId, chatType);
+
+                if (sendResult.success) {
+                    const res = sendResult.data;
+
+                    // Обновляем статус отправленного сообщения
+                    setMessages(prev => prev.map(m => m.status === 'sending'
+                        ? {
+                            ...m,
+                            id: res.message_id ?? m.id,
+                            status: 'sent',
+                            timestamp: res.timestamp ?? m.timestamp
+                        }
+                        : m
+                    ));
+
+                    // Создаём пустое сообщение бота для streaming
+                    const botMessageId = Date.now();
+                    const botMessage = {
+                        id: botMessageId,
+                        role: 'assistant',
+                        content: '',
+                        timestamp: new Date(),
+                        isStreaming: true
+                    };
+
+                    setMessages(prev => [...prev, botMessage]);
+                    setStreamingMessageId(botMessageId);
+
+                    // Создаём AbortController для этого запроса
+                    const controller = new AbortController();
+                    streamingControllerRef.current = controller;
+
+                    try {
+                        // Получаем streaming ответ от ИИ
+                        await getAIResponseStream(
+                            text,
+                            chatId,
+                            {
+                                tool_type: chatType,
+                                agent_prompt: modifiedPrompt,
+                                temperature: temperature
+                            },
+                            (chunk) => {
+                                // Обновляем сообщение с каждым чанком
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === botMessageId
+                                        ? { ...msg, content: msg.content + chunk }
+                                        : msg
+                                ));
+                            },
+                            [], // fileIds пусто для текстовых сообщений
+                            controller
+                        );
+
+                        // Завершаем streaming
+                        setMessages(prev => prev.map(msg =>
+                            msg.id === botMessageId
+                                ? { ...msg, isStreaming: false }
+                                : msg
+                        ));
+
+                    } catch (error) {
+                        console.error('AI streaming error:', error);
+
+                        if (error.message === 'STREAMING_CANCELLED') {
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === botMessageId
+                                    ? {
+                                        ...msg,
+                                        content: msg.content + '\n\n[Генерация остановлена]',
+                                        isStreaming: false
+                                    }
+                                    : msg
+                            ));
+                        } else {
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === botMessageId
+                                    ? {
+                                        ...msg,
+                                        content: 'Ошибка получения ответа. Попробуйте ещё раз.',
+                                        isStreaming: false
+                                    }
+                                    : msg
+                            ));
+                        }
+                    } finally {
+                        setStreamingMessageId(null);
+                        streamingControllerRef.current = null;
+                    }
+                }
+            }
+                // ============================================================
+                // 📎 СООБЩЕНИЯ С ФАЙЛАМИ
+            // ============================================================
+            else {
+                const sendResult = await sendMessageWithFiles(
+                    text,
+                    optimisticMsg.files,
+                    chatId,
+                    chatType
+                );
+
+                if (sendResult.success) {
+                    const res = sendResult.data;
+
+                    // Обновляем статус отправленного сообщения с файлами
+                    setMessages(prev => prev.map(m => m.status === 'sending'
+                        ? {
+                            ...m,
+                            id: res.message_id ?? m.id,
+                            status: 'sent',
+                            timestamp: res.timestamp ?? m.timestamp,
+                            files: res.uploaded_files || m.files
+                        }
+                        : m
+                    ));
+
+                    const botMessageId = Date.now();
+                    const botMessage = {
+                        id: botMessageId,
+                        role: 'assistant',
+                        content: '',
+                        timestamp: new Date(),
+                        isStreaming: true
+                    };
+
+                    setMessages(prev => [...prev, botMessage]);
+                    setStreamingMessageId(botMessageId);
+
+                    const fileIds = (res.uploaded_files || []).map(f => f.file_id);
+
+                    // Создаём AbortController
+                    const controller = new AbortController();
+                    streamingControllerRef.current = controller;
+
+                    try {
+                        await getAIResponseStream(
+                            text || "Проанализируй текст, извлеченный до этого из файла/файлов:",
+                            chatId,
+                            {
+                                tool_type: chatType,
+                                agent_prompt: modifiedPrompt,
+                                temperature: temperature
+                            },
+                            (chunk) => {
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === botMessageId
+                                        ? { ...msg, content: msg.content + chunk }
+                                        : msg
+                                ));
+                            },
+                            fileIds,
+                            controller
+                        );
+
+                        setMessages(prev => prev.map(msg =>
+                            msg.id === botMessageId
+                                ? { ...msg, isStreaming: false }
+                                : msg
+                        ));
+
+                    } catch (error) {
+                        console.error('AI streaming error:', error);
+
+                        if (error.message === 'STREAMING_CANCELLED') {
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === botMessageId
+                                    ? {
+                                        ...msg,
+                                        content: msg.content + '\n\n[Генерация остановлена]',
+                                        isStreaming: false
+                                    }
+                                    : msg
+                            ));
+                        } else {
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === botMessageId
+                                    ? {
+                                        ...msg,
+                                        content: 'Ошибка получения ответа. Попробуйте ещё раз.',
+                                        isStreaming: false
+                                    }
+                                    : msg
+                            ));
+                        }
+                    } finally {
+                        setStreamingMessageId(null);
+                        streamingControllerRef.current = null;
+                    }
+                }
+            }
 
         } catch (error) {
             console.error('💬 Chat error:', error);
-            const errorMessage = {
-                id: Date.now() + 1,
+
+            // Удаляем оптимистичное сообщение при ошибке
+            setMessages(prev => prev.filter(msg => msg.status !== 'sending'));
+
+            // Показываем сообщение об ошибке
+            setMessages(prev => [...prev, {
+                id: `err-${Date.now()}`,
                 role: 'assistant',
-                content: 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте ещё раз.',
-                timestamp: new Date()
-            };
-            setMessages(prev => [...prev, errorMessage]);
+                content: 'Извините, произошла ошибка при обработке вашего запроса. Попробуйте ещё раз.'
+            }]);
         } finally {
             setIsLoading(false);
         }

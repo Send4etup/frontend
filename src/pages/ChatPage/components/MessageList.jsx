@@ -13,7 +13,8 @@ const MessageList = ({
                          onImageClick,
                          onCopyMessage,
                          onResendMessage,
-                         formatDateTime
+                         formatDateTime,
+                         onRegenerateImage,
                      }) => {
 
     /**
@@ -67,6 +68,7 @@ const MessageList = ({
                                             file={file}
                                             onAnalyze={message.role === 'user' ? onAnalyzeFile : null}
                                             onImageClick={onImageClick}
+                                            onRegenerateImage={onRegenerateImage}
                                         />
                                     ))}
                                 </div>

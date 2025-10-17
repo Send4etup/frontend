@@ -242,6 +242,77 @@ export const getAIResponseStream = async (
 };
 
 /**
+ * Генерация изображения через DALL-E с поддержкой анализа файлов
+ * @param {string} chatId - ID чата
+ * @param {string} prompt - Текстовый промпт для генерации
+ * @param {string} agentPrompt - Системный промпт агента
+ * @param {Object} context - Дополнительный контекст (temperature, tool_type)
+ * @param {Array} fileIds - Массив ID файлов для анализа (опционально)
+ * @returns {Promise<Object>} Результат генерации с URL изображения
+ */
+export const generateImage = async (chatId, prompt, agentPrompt, context = {}, fileIds = []) => {
+    try {
+        console.log('🎨 Запрос на генерацию изображения...');
+
+        // Если есть файлы - логируем
+        if (fileIds && fileIds.length > 0) {
+            console.log('📎 С файлами для анализа:', fileIds);
+        }
+
+        const requestBody = {
+            chat_id: chatId,
+            message: prompt,
+            agent_prompt: agentPrompt,
+            context: {
+                tool_type: context.tool_type || 'images',
+                temperature: context.temperature || 0.7
+            }
+        };
+
+        // ✅ Добавляем file_ids если есть
+        if (fileIds && fileIds.length > 0) {
+            requestBody.file_ids = fileIds;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/chat/generate-image`, {
+            method: 'POST',
+            headers: await getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.image_url) {
+            console.log('✅ Изображение сгенерировано:', result.image_url);
+            return {
+                success: true,
+                data: {
+                    image_url: result.image_url,
+                    revised_prompt: result.revised_prompt || null,
+                    message: result.message || 'Изображение создано! 🎨',
+                    analysis: result.analysis || null // Анализ загруженных файлов
+                }
+            };
+        } else {
+            throw new Error(result.error || 'Не удалось получить URL изображения');
+        }
+
+    } catch (error) {
+        console.error('❌ Ошибка генерации изображения:', error);
+        return {
+            success: false,
+            error: error.message || 'Не удалось сгенерировать изображение'
+        };
+    }
+};
+
+/**
  * Сохранение частичного ответа ИИ при прерывании
  * @param {string} chatId - ID чата
  * @param {string} content - Частичный контент
@@ -682,5 +753,6 @@ export default {
     transcribeAudio,
     transcribeAudioFile,
     getChatTypeDisplay,
+    generateImage,
     CHAT_TYPES
 };

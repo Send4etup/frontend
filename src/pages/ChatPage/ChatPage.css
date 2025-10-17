@@ -424,17 +424,45 @@
     transition: transform 0.2s ease;
 }
 
-/*.message-image:hover {*/
-/*    transform: scale(1.02);*/
-/*}*/
+.message-image:hover {
+    transform: scale(1.02);
+}
 
-/*.message-image img {*/
-/*    width: 100%;*/
-/*    height: auto;*/
-/*    max-height: 300px;*/
-/*    object-fit: contain;*/
-/*    background: #0d0d0d;*/
-/*}*/
+.message-image img {
+    width: 100%;
+    height: auto;
+    max-height: 300px;
+    object-fit: contain;
+    background: #0d0d0d;
+}
+
+.analyze-file-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    background: rgba(67, 255, 101, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(67, 255, 101, 0.4);
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    opacity: 0;
+}
+
+.message-image:hover .analyze-file-btn {
+    opacity: 1;
+}
+
+.analyze-file-btn:hover {
+    background: rgba(67, 255, 101, 0.3);
+    transform: scale(1.1);
+}
 
 .message-file {
     display: flex;
