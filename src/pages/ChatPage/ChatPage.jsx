@@ -21,9 +21,14 @@ import {
     sendMessage,
     sendMessageWithFiles,
     getAIResponseStream,
-    savePartialAIResponse  // ✅ ДОБАВЛЕН НОВЫЙ ИМПОРТ
+    savePartialAIResponse
 } from "../../services/chatAPI.js";
 import { getWelcomeMessage } from "../../utils/aiAgentsUtils.js";
+import {
+    saveMicrophonePermission,
+    hasGrantedPermissionBefore,
+    checkPermissionStatus
+} from '../../utils/microphonePermission';
 
 // Styles
 import './ChatPage.css';
@@ -56,6 +61,11 @@ const ChatPage = () => {
     const attachmentButtonRef = useRef(null);
     const [showSettings, setShowSettings] = useState(false);
     const [chatSettings, setChatSettings] = useState(null);
+    const [shouldSendMessage, setShouldSendMessage] = useState(false);
+
+    // Microphone permission
+    const [permissionStatus, setPermissionStatus] = useState('checking');
+    const [showPermissionHelp, setShowPermissionHelp] = useState(false);
 
     // Refs
     const messagesEndRef = useRef(null);
@@ -63,54 +73,85 @@ const ChatPage = () => {
 
     // Эффекты для инициализации
     useEffect(() => {
-        if (location.state) {
+        const initializeChat = async () => {
+            if (!location.state) {
+                // Нет state - просто загружаем сообщения
+                loadMessages();
+                return;
+            }
+
             const { initialMessage, isToolDescription, attachedFiles } = location.state;
 
-            // Если есть файлы, не обрабатываем initialMessage здесь
-            if (attachedFiles && attachedFiles.length > 0) {
-                return; // Файлы обработаются в другом useEffect
+            // 1. Обработка описания инструмента (приоритет)
+            if (isToolDescription) {
+                const botMessage = {
+                    id: 1,
+                    role: 'assistant',
+                    content: isToolDescription,
+                    timestamp: new Date(),
+                    isToolDescription: true
+                };
+                setMessages([botMessage]);
+
+                // Очищаем state
+                window.history.replaceState(
+                    {
+                        ...location.state,
+                        attachedFiles: null,
+                        initialMessage: null,
+                        isToolDescription: null
+                    },
+                    ''
+                );
+
+                return;
             }
 
-            if (initialMessage) {
-                if (isToolDescription) {
-                    const botMessage = {
-                        id: 1,
-                        role: 'assistant',
-                        content: initialMessage,
-                        timestamp: new Date(),
-                        isToolDescription: true
-                    };
-                    setMessages([botMessage]);
-                } else {
-                    setInputValue(initialMessage);
-                    setTimeout(() => handleSendMessage(), 0);
-                }
-            } else {
-                loadMessages();
+            // 2. Обработка файлов (если есть)
+            if (attachedFiles && attachedFiles.length > 0) {
+                setAttachedFiles(attachedFiles);
+                setShouldSendMessage(true);
             }
-        } else {
-            loadMessages();
-        }
+
+            // 3. Обработка начального сообщения
+            if (initialMessage) {
+                setInputValue(initialMessage);
+                setShouldSendMessage(true);
+            }
+
+            // 4. Если нет ни файлов, ни сообщения - загружаем историю
+            if (!initialMessage && (!attachedFiles || attachedFiles.length === 0)) {
+                loadMessages();
+                return;
+            }
+
+            // 5. Очищаем state после обработки
+            window.history.replaceState(
+                {
+                    ...location.state,
+                    attachedFiles: null,
+                    initialMessage: null,
+                    isToolDescription: null
+                },
+                ''
+            );
+        };
+
+        initializeChat();
     }, []);
 
-    // Эффект для обработки прикрепленных файлов из навигации
     useEffect(() => {
-        if (location.state?.attachedFiles && location.state.attachedFiles.length > 0) {
-            setAttachedFiles(location.state.attachedFiles);
-
-            // Если есть initialMessage, устанавливаем его
-            if (location.state.initialMessage) {
-                setInputValue(location.state.initialMessage);
-            }
-
-            // Очищаем state чтобы при перезагрузке не дублировались файлы
-            window.history.replaceState({
-                ...location.state,
-                attachedFiles: null,
-                initialMessage: null
-            }, '');
+        // Ждем пока inputValue обновится И флаг будет true
+        if (shouldSendMessage && (inputValue || attachedFiles)) {
+            // Небольшая задержка для уверенности (опционально)
+            setTimeout(() => {
+                handleSendMessage();
+                // alert(32323)
+                setShouldSendMessage(false); // ✅ Сбрасываем флаг
+                setAttachedFiles([])
+            }, 100);
         }
-    }, [location.state]);
+    }, [shouldSendMessage, inputValue]);
 
     // Скролл до конца сообщений
     useEffect(() => {
@@ -198,6 +239,24 @@ const ChatPage = () => {
         loadChatSettings();
     }, [chatId, chatType]);
 
+    useEffect(() => {
+        initializePermissions();
+    }, []);
+
+    const initializePermissions = async () => {
+        // Проверяем, давал ли пользователь разрешение раньше
+        const grantedBefore = hasGrantedPermissionBefore();
+
+        if (grantedBefore) {
+            setPermissionStatus('granted');
+            setShowPermissionHelp(false);
+        } else {
+            // Проверяем актуальный статус
+            const status = await checkPermissionStatus();
+            setPermissionStatus(status === 'granted' ? 'granted' : 'prompt');
+        }
+    };
+
     // Функции загрузки сообщений
     const loadMessages = async () => {
         try {
@@ -273,18 +332,31 @@ const ChatPage = () => {
     // Функции для работы с аудио
     const startRecording = async () => {
         try {
+
             // Запрашиваем доступ к микрофону
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
-                    echoCancellation: true,  // Подавление эха
-                    noiseSuppression: true,  // Шумоподавление
-                    autoGainControl: true     // Автоматическая регулировка громкости
+                    echoCancellation: true,      // Подавление эха
+                    noiseSuppression: true,      // Шумоподавление
+                    autoGainControl: true,       // Автоматическая регулировка громкости
+                    sampleRate: 48000,           // Качество записи
                 }
             });
 
+            saveMicrophonePermission(true);
+            setPermissionStatus('granted');
+            setShowPermissionHelp(false);
+
+            // Проверяем поддержку формата
+            let mimeType = 'audio/webm;codecs=opus';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+                mimeType = 'audio/webm';
+                console.warn('⚠️ opus не поддерживается, используем audio/webm');
+            }
+
             const options = {
-                mimeType: 'audio/webm;codecs=opus',  // Лучшее качество для речи
-                audioBitsPerSecond: 128000
+                mimeType: mimeType,
+                audioBitsPerSecond: 164000  // Оптимально для речи
             };
 
             const recorder = new MediaRecorder(stream, options);
@@ -293,32 +365,81 @@ const ChatPage = () => {
             recorder.ondataavailable = (e) => {
                 if (e.data.size > 0) {
                     chunks.push(e.data);
+                    console.log(`📦 Получен chunk размером ${e.data.size} байт`);
                 }
             };
 
             recorder.onstop = async () => {
-                // Останавливаем поток
-                stream.getTracks().forEach(track => track.stop());
+                console.log('🛑 Запись остановлена, обработка...');
+
+                // Останавливаем все треки (освобождаем микрофон)
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log('🔇 Трек остановлен');
+                });
+
+                // Проверяем, что есть данные
+                if (chunks.length === 0) {
+                    console.error('❌ Нет данных для обработки');
+                    setFileErrors(prev => [...prev, 'Не удалось записать аудио. Попробуйте еще раз.']);
+                    return;
+                }
 
                 // Создаем blob из записанных кусков
-                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+                const audioBlob = new Blob(chunks, { type: mimeType });
+                console.log(`✅ Создан audioBlob размером ${audioBlob.size} байт`);
 
-                // Отправляем на транскрибацию
+                // Проверка размера
+                if (audioBlob.size < 100) {
+                    console.error('❌ Слишком маленький размер аудио');
+                    setFileErrors(prev => [...prev, 'Запись слишком короткая. Попробуйте записать дольше.']);
+                    return;
+                }
+
                 await transcribeAudio(audioBlob);
             };
 
+            recorder.onerror = (event) => {
+                console.error('❌ Ошибка MediaRecorder:', event.error);
+                setFileErrors(prev => [...prev, 'Ошибка записи. Попробуйте еще раз.']);
+            };
+
             setMediaRecorder(recorder);
-            recorder.start();
+            recorder.start(1000); // Собираем данные каждую секунду (более стабильно)
             setIsRecording(true);
 
             console.log('🎤 Запись началась');
-        } catch (error) {
-            console.error('Ошибка доступа к микрофону:', error);
 
-            // Показываем понятную ошибку пользователю
-            const errorMessage = error.name === 'NotAllowedError'
-                ? 'Доступ к микрофону запрещен. Разрешите доступ в настройках браузера.'
-                : 'Не удалось получить доступ к микрофону. Проверьте подключение.';
+            setTimeout(() => {
+                if (recorder.state === 'recording') {
+                    console.log('⏰ Автоматическая остановка записи через 60 сек');
+                    recorder.stop();
+                    setIsRecording(false);
+                }
+            }, 180000);
+
+        } catch (error) {
+            console.error('❌ Ошибка доступа к микрофону:', error);
+
+            saveMicrophonePermission(false);
+
+            // Определяем тип ошибки и показываем понятное сообщение
+            let errorMessage = '';
+
+            if (error.name === 'NotAllowedError') {
+                errorMessage = 'Доступ к микрофону запрещен. Разрешите доступ в настройках.';
+                setPermissionStatus('denied');
+                setShowPermissionHelp(true); // Показываем инструкцию
+            } else if (error.name === 'NotFoundError') {
+                errorMessage = 'Микрофон не найден. Проверьте подключение устройства.';
+                setPermissionStatus('denied');
+            } else if (error.name === 'NotReadableError') {
+                errorMessage = 'Микрофон занят другим приложением. Закройте другие приложения.';
+                setPermissionStatus('denied');
+            } else {
+                errorMessage = 'Не удалось получить доступ к микрофону. Попробуйте перезагрузить страницу.';
+                setPermissionStatus('denied');
+            }
 
             setFileErrors(prev => [...prev, errorMessage]);
         }
@@ -328,16 +449,59 @@ const ChatPage = () => {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
             setIsRecording(false);
-            console.log('🎤 Запись остановлена');
         }
     };
 
-    const toggleRecording = () => {
+    const cancelRecording = () => {
+        console.log('❌ Отмена записи голоса');
+
+        // Останавливаем MediaRecorder без обработки
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            // Удаляем обработчик onstop, чтобы не запускать расшифровку
+            mediaRecorder.onstop = null;
+
+            // Останавливаем запись
+            mediaRecorder.stop();
+
+            // Останавливаем все треки микрофона
+            if (mediaRecorder.stream) {
+                mediaRecorder.stream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log('🔇 Трек микрофона остановлен');
+                });
+            }
+        }
+
+        // Сбрасываем состояния
+        setIsRecording(false);
+        setMediaRecorder(null);
+
+    };
+
+    const confirmRecording = () => {
+        // Останавливаем запись (при этом сработает onstop обработчик с расшифровкой)
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            setIsRecording(false);
+        }
+    };
+
+    const toggleRecording = async () => {
         if (isRecording) {
             stopRecording();
         } else {
-            startRecording();
+            if (permissionStatus === 'denied') {
+                setShowPermissionHelp(true);
+                return;
+            }
+
+            await startRecording();
         }
+    };
+
+    const retryPermission = async () => {
+        setShowPermissionHelp(false);
+        await startRecording();
     };
 
     const transcribeAudio = async (audioBlob) => {
@@ -386,7 +550,7 @@ const ChatPage = () => {
 
     // Функции для отправки сообщений
     const handleSendMessage = async () => {
-        if (!inputValue.trim() && attachedFiles.length === 0) return;
+        if (!inputValue.trim() && attachedFiles.length === 0) alert("bee");
 
         const modifiedPrompt = buildSystemPrompt();
         const temperature = chatSettings?.temperature || 0.7;
@@ -406,6 +570,7 @@ const ChatPage = () => {
             setMessages(prev => [...prev, optimisticMsg]);
             setInputValue('');
             setIsLoading(true);
+            setAttachedFiles([]);
 
             try {
                 if (attachedFiles.length === 0) {
@@ -1266,6 +1431,9 @@ const ChatPage = () => {
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
                 attachmentButtonRef={attachmentButtonRef}
+                onStopRecording={toggleRecording}
+                onCancelRecording={cancelRecording}
+                onConfirmRecording={confirmRecording}
             />
 
             <ChatSettings
@@ -1275,6 +1443,106 @@ const ChatPage = () => {
                 chatType={chatType}
                 currentSettings={chatSettings}
             />
+
+            {showPermissionHelp && permissionStatus === 'denied' && (
+                <div style={{
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    background: '#2a2a2a',
+                    padding: '24px',
+                    borderRadius: '16px',
+                    border: '2px solid #ef4444',
+                    zIndex: 1000,
+                    maxWidth: '400px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
+                }}>
+                    <h3 style={{
+                        color: '#ef4444',
+                        marginBottom: '16px',
+                        fontSize: '20px'
+                    }}>
+                        ⚠️ Микрофон заблокирован
+                    </h3>
+
+                    <p style={{
+                        color: '#fff',
+                        marginBottom: '16px',
+                        lineHeight: '1.5'
+                    }}>
+                        Чтобы записывать голос, разреши доступ к микрофону:
+                    </p>
+
+                    <ol style={{
+                        color: '#fff',
+                        textAlign: 'left',
+                        margin: '16px 0',
+                        paddingLeft: '20px',
+                        lineHeight: '1.8'
+                    }}>
+                        <li>Нажми на иконку 🔒 в адресной строке</li>
+                        <li>Найди "Микрофон"</li>
+                        <li>Выбери "Разрешить"</li>
+                        <li>Обнови страницу</li>
+                    </ol>
+
+                    <div style={{
+                        display: 'flex',
+                        gap: '12px',
+                        marginTop: '20px'
+                    }}>
+                        <button
+                            onClick={retryPermission}
+                            style={{
+                                flex: 1,
+                                background: '#578BF6',
+                                color: '#fff',
+                                padding: '12px 20px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500'
+                            }}
+                        >
+                            Попробовать снова
+                        </button>
+
+                        <button
+                            onClick={() => setShowPermissionHelp(false)}
+                            style={{
+                                flex: 1,
+                                background: 'transparent',
+                                color: '#fff',
+                                padding: '12px 20px',
+                                borderRadius: '8px',
+                                border: '1px solid #fff',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500'
+                            }}
+                        >
+                            Закрыть
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {showPermissionHelp && (
+                <div
+                    onClick={() => setShowPermissionHelp(false)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.7)',
+                        zIndex: 999
+                    }}
+                />
+            )}
 
         </motion.div>
     );

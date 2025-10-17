@@ -182,7 +182,7 @@ const RecentChats = ({ onChatClick }) => {
                         return (
                             <motion.div
                                 key={chat.chat_id}
-                                className="chat-item"
+                                className="history-chat-item"
                                 onClick={() => {
                                     navigate(`/chat/${chat.chat_id}`, {
                                         state: {

@@ -1,13 +1,11 @@
-// src/services/chatAPI.js
-
-// import { csrfService } from './csrfService';
+// src/services/chatAPI.js - ПОЛНАЯ ВЕРСИЯ с транскрибацией
 
 /**
  * API функции для работы с чатами ТоварищБота
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213/api';
 // const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://back.grigpe3j.beget.tech/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213/api';
 
 /**
  * Получение заголовков для запросов с авторизацией
@@ -15,14 +13,9 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213/api'
 const getAuthHeaders = async () => {
     const token = localStorage.getItem('backend_token');
 
-    // if (!csrfService.hasToken()) {
-    //     await csrfService.getCsrfToken();
-    // }
-
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
-        // 'X-CSRF-Token': csrfService.getToken()  // Добавляем CSRF токен
     };
 };
 
@@ -34,8 +27,6 @@ const getAuthHeaders = async () => {
  */
 export const createChat = async (title, chatType = 'general') => {
     try {
-        const telegram_auth = localStorage.getItem('telegram_auth')
-
         const response = await fetch(`${API_BASE_URL}/chat/create`, {
             method: 'POST',
             headers: await getAuthHeaders(),
@@ -70,15 +61,14 @@ export const createChat = async (title, chatType = 'general') => {
 };
 
 /**
- * Отправка сообщения в чат с файлами
+ * Отправка текстового сообщения в чат
  * @param {string} message - Текст сообщения
  * @param {string} chatId - ID чата
- * @param chatType
+ * @param {string} chatType - Тип чата
  * @returns {Promise<Object>} Результат отправки
  */
 export const sendMessage = async (message, chatId, chatType) => {
     try {
-
         const response = await fetch(`${API_BASE_URL}/chat/send`, {
             method: 'POST',
             headers: await getAuthHeaders(),
@@ -117,14 +107,14 @@ export const sendMessage = async (message, chatId, chatType) => {
  * @param {string} message - Текст сообщения
  * @param {Array} files - Массив файлов для отправки
  * @param {string} chatId - ID чата
- * @param chatType
+ * @param {string} chatType - Тип чата
  * @returns {Promise<Object>} Результат отправки
  */
 export const sendMessageWithFiles = async (message, files, chatId, chatType) => {
     try {
         const formData = new FormData();
 
-        formData.append('message', message);  // важно: message, а не content
+        formData.append('message', message);
         formData.append('chat_id', chatId);
         formData.append('tool_type', chatType);
 
@@ -134,7 +124,6 @@ export const sendMessageWithFiles = async (message, files, chatId, chatType) => 
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('backend_token')}`,
-                // 'X-CSRF-Token': csrfService.hasToken() ? csrfService.getToken() : await csrfService.getCsrfToken()
             },
             credentials: 'include',
             body: formData
@@ -178,7 +167,7 @@ export const getAIResponseStream = async (
     options = {},
     onChunk,
     fileIds = [],
-    abortController = null // ✅ ДОБАВЛЕНО: поддержка AbortController
+    abortController = null
 ) => {
     try {
         const requestBody = {
@@ -192,7 +181,6 @@ export const getAIResponseStream = async (
             file_ids: fileIds
         };
 
-        // ✅ КРИТИЧНО: Добавляем signal для возможности отмены
         const fetchOptions = {
             method: 'POST',
             headers: await getAuthHeaders(),
@@ -200,7 +188,6 @@ export const getAIResponseStream = async (
             body: JSON.stringify(requestBody)
         };
 
-        // Добавляем signal если передан abortController
         if (abortController) {
             fetchOptions.signal = abortController.signal;
         }
@@ -215,13 +202,11 @@ export const getAIResponseStream = async (
             throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
         }
 
-        // Читаем streaming ответ
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullResponse = '';
 
         while (true) {
-            // ✅ Проверяем отмену на каждой итерации
             if (abortController?.signal.aborted) {
                 console.log('⛔ Streaming прерван пользователем');
                 reader.cancel();
@@ -235,11 +220,9 @@ export const getAIResponseStream = async (
                 break;
             }
 
-            // Декодируем чанк
             const chunk = decoder.decode(value, { stream: true });
             fullResponse += chunk;
 
-            // Отправляем чанк в callback
             if (onChunk && typeof onChunk === 'function') {
                 onChunk(chunk);
             }
@@ -248,7 +231,6 @@ export const getAIResponseStream = async (
         return fullResponse;
 
     } catch (error) {
-        // ✅ Обрабатываем AbortError отдельно
         if (error.name === 'AbortError') {
             console.log('⛔ Запрос отменен');
             throw new Error('STREAMING_CANCELLED');
@@ -377,7 +359,7 @@ export const getChatMessages = async (chatId, limit = 50) => {
 };
 
 /**
- * НОВАЯ ФУНКЦИЯ: Обновление названия чата
+ * Обновление названия чата
  * @param {string} chatId - ID чата
  * @param {string} newTitle - Новое название чата
  * @returns {Promise<Object>} Результат обновления
@@ -416,7 +398,7 @@ export const updateChatTitle = async (chatId, newTitle) => {
 };
 
 /**
- * НОВАЯ ФУНКЦИЯ: Удаление чата
+ * Удаление чата
  * @param {string} chatId - ID чата для удаления
  * @returns {Promise<Object>} Результат удаления
  */
@@ -485,6 +467,178 @@ export const getChatInfo = async (chatId) => {
     }
 };
 
+// ========================================
+// 🎤 ФУНКЦИИ ТРАНСКРИБАЦИИ АУДИО
+// ========================================
+
+/**
+ * Транскрибация аудио в текст через Whisper API
+ * @param {Blob} audioBlob - Аудио файл (Blob)
+ * @param {string} language - Язык аудио (по умолчанию 'ru')
+ * @param {string} prompt - Контекстный промпт для улучшения точности (опционально)
+ * @returns {Promise<Object>} Результат транскрибации { success, text, error }
+ */
+export const transcribeAudio = async (audioBlob, language = 'ru', prompt = null) => {
+    try {
+        console.log('🎤 Начинаем транскрибацию аудио...');
+
+        // Валидация входных данных
+        if (!audioBlob || !(audioBlob instanceof Blob)) {
+            throw new Error('Некорректный аудио файл');
+        }
+
+        if (audioBlob.size === 0) {
+            throw new Error('Аудио файл пустой');
+        }
+
+        // Проверка размера (макс. 25MB для Whisper API)
+        const MAX_SIZE = 25 * 1024 * 1024; // 25MB
+        if (audioBlob.size > MAX_SIZE) {
+            const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
+            throw new Error(`Аудио файл слишком большой (${sizeMB}MB, макс. 25MB)`);
+        }
+
+        // Создаем FormData для отправки
+        const formData = new FormData();
+
+        // Добавляем аудио файл с правильным именем и расширением
+        const audioFile = new File([audioBlob], 'recording.webm', {
+            type: audioBlob.type || 'audio/webm',
+            lastModified: Date.now()
+        });
+
+        formData.append('audio', audioFile);
+        formData.append('language', language);
+
+        // Добавляем контекстный промпт
+        if (prompt) {
+            formData.append('prompt', prompt);
+        } else {
+            // Дефолтный образовательный контекст
+            const defaultPrompt = "Это образовательный контент на русском языке о программировании, учебе и образовании. Распознавай термины: математика, физика, химия, программирование, Python, JavaScript, функция, переменная, уравнение, формула, теорема.";
+            formData.append('prompt', defaultPrompt);
+        }
+
+        // Отправляем запрос на бэкенд
+        const response = await fetch(`${API_BASE_URL}/transcribe`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('backend_token')}`
+                // Не добавляем Content-Type - браузер сам установит с boundary для FormData
+            },
+            credentials: 'include',
+            body: formData
+        });
+
+        // Обработка ошибок HTTP
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage = errorData.detail || errorData.error || `HTTP error! status: ${response.status}`;
+            throw new Error(errorMessage);
+        }
+
+        // Парсим ответ
+        const data = await response.json();
+
+        // Проверяем успешность транскрибации
+        if (data.success === false) {
+            throw new Error(data.error || data.message || 'Не удалось распознать речь');
+        }
+
+        // Проверяем наличие текста
+        if (!data.text || !data.text.trim()) {
+            console.warn('⚠️ Транскрибация вернула пустой текст');
+            return {
+                success: false,
+                text: '',
+                error: 'Не удалось распознать речь. Возможно, аудио слишком тихое или содержит только шум.'
+            };
+        }
+
+        // Успешная транскрибация
+        console.log('✅ Транскрибация успешна:', data.text.substring(0, 100) + '...');
+
+        return {
+            success: true,
+            text: data.text.trim(),
+            error: null
+        };
+
+    } catch (error) {
+        console.error('❌ Ошибка транскрибации:', error);
+
+        // Формируем понятное сообщение об ошибке для пользователя
+        let userMessage = 'Не удалось распознать речь. Попробуйте еще раз.';
+
+        const errorStr = error.message.toLowerCase();
+
+        if (errorStr.includes('rate limit')) {
+            userMessage = 'Превышен лимит запросов. Попробуйте позже.';
+        } else if (errorStr.includes('network') || errorStr.includes('fetch')) {
+            userMessage = 'Ошибка соединения с сервером. Проверьте интернет-соединение.';
+        } else if (errorStr.includes('too large') || errorStr.includes('слишком большой')) {
+            userMessage = error.message;
+        } else if (errorStr.includes('invalid') || errorStr.includes('format')) {
+            userMessage = 'Неподдерживаемый формат аудио. Используйте: WEBM, MP3, WAV, M4A, OGG.';
+        } else if (errorStr.includes('timeout')) {
+            userMessage = 'Время ожидания истекло. Попробуйте записать более короткое сообщение.';
+        } else if (errorStr.includes('empty') || errorStr.includes('пустой')) {
+            userMessage = 'Аудио файл пустой. Проверьте запись.';
+        } else if (error.message) {
+            userMessage = error.message;
+        }
+
+        return {
+            success: false,
+            text: '',
+            error: userMessage
+        };
+    }
+};
+
+/**
+ * Транскрибация аудио файла из input[type="file"]
+ * Удобная обёртка для работы с File объектами
+ * @param {File} audioFile - Аудио файл из input
+ * @param {string} language - Язык аудио (по умолчанию 'ru')
+ * @param {string} prompt - Контекстный промпт для улучшения точности (опционально)
+ * @returns {Promise<Object>} Результат транскрибации { success, text, error }
+ */
+export const transcribeAudioFile = async (audioFile, language = 'ru', prompt = null) => {
+    try {
+        // Валидация файла
+        if (!audioFile || !(audioFile instanceof File)) {
+            throw new Error('Некорректный файл');
+        }
+
+        // Проверяем тип файла
+        const supportedTypes = [
+            'audio/webm', 'audio/wav', 'audio/mp3', 'audio/mpeg',
+            'audio/mp4', 'audio/m4a', 'audio/ogg', 'audio/flac'
+        ];
+
+        if (!supportedTypes.some(type => audioFile.type.includes(type.split('/')[1]))) {
+            throw new Error('Неподдерживаемый формат аудио. Используйте: WEBM, MP3, WAV, M4A, OGG, FLAC.');
+        }
+
+        // Конвертируем File в Blob и вызываем основную функцию
+        const audioBlob = new Blob([audioFile], { type: audioFile.type });
+        return await transcribeAudio(audioBlob, language, prompt);
+
+    } catch (error) {
+        console.error('❌ Ошибка транскрибации файла:', error);
+        return {
+            success: false,
+            text: '',
+            error: error.message || 'Не удалось обработать аудио файл'
+        };
+    }
+};
+
+// ========================================
+// 📚 ТИПЫ ЧАТОВ И ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ========================================
+
 /**
  * Типы чатов и их отображение
  */
@@ -510,13 +664,23 @@ export const getChatTypeDisplay = (chatType) => {
     return CHAT_TYPES[chatType] || 'Неизвестный тип';
 };
 
-// Экспортируем все функции
+// ========================================
+// 📤 ЭКСПОРТ ВСЕХ ФУНКЦИЙ
+// ========================================
+
 export default {
     createChat,
     sendMessage,
+    sendMessageWithFiles,
     getAIResponseStream,
+    savePartialAIResponse,
     getUserChats,
     getChatMessages,
+    updateChatTitle,
+    deleteChatById,
+    getChatInfo,
+    transcribeAudio,
+    transcribeAudioFile,
     getChatTypeDisplay,
     CHAT_TYPES
 };

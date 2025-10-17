@@ -160,7 +160,15 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
                     >
                         {/* Шапка модального окна */}
                         <div className="settings-header">
+
                             <h2 className="settings-title">Настройки</h2>
+                            <button
+                                className=""
+                                onClick={handleReset}
+                                title="Сбросить к настройкам по умолчанию"
+                            >
+                                <RotateCcw size={16}/>
+                            </button>
                         </div>
 
                         {/* Контент настроек */}
@@ -216,15 +224,6 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
 
                         {/* Футер с кнопками */}
                         <div className="settings-footer">
-                            <button
-                                className="reset-btn"
-                                onClick={handleReset}
-                                title="Сбросить к настройкам по умолчанию"
-                            >
-                                <RotateCcw size={16} />
-                                Сбросить
-                            </button>
-
                             <div className="action-buttons">
                                 <button
                                     className="cancel-btn"
@@ -237,7 +236,7 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
                                     onClick={handleSave}
                                     disabled={!hasChanges}
                                 >
-                                    ✅ Сохранить
+                                    Сохранить
                                 </button>
                             </div>
                         </div>

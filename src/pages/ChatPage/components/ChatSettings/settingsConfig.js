@@ -14,7 +14,7 @@ export const GENERAL_SETTINGS = [
         label: 'Креативность',
         description: 'Чем выше значение, тем более креативные ответы',
         type: 'slider',
-        min: 0.1,
+        min: 0.2,
         max: 1.2,
         step: 0.1,
         defaultValue: 0.7,
@@ -39,8 +39,8 @@ export const GENERAL_SETTINGS = [
         type: 'select',
         defaultValue: 'ru',
         options: [
-            { value: 'ru', label: '🇷🇺 Русский' },
-            { value: 'en', label: '🇬🇧 English' }
+            { value: 'ru', label: 'Русский' },
+            { value: 'en', label: 'English' }
         ]
     }
 ];
@@ -77,9 +77,9 @@ export const SPECIFIC_SETTINGS = {
             options: [
                 { value: 'realistic', label: 'Реалистичный' },
                 { value: 'artistic', label: 'Художественный' },
-                { value: 'cartoon', label: 'Мультяшный' },
-                { value: 'anime', label: 'Аниме' },
-                { value: 'abstract', label: 'Абстрактный' }
+                // { value: 'cartoon', label: 'Мультяшный' },
+                // { value: 'anime', label: 'Аниме' },
+                // { value: 'abstract', label: 'Абстрактный' }
             ]
         },
         {

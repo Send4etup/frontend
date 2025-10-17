@@ -524,7 +524,7 @@ const ChatHistoryPage = () => {
                 </>
                 <h1 className="history-page-title">
                     <h3>История чатов</h3>
-                    <span className="chats-count">({chats.length})</span>
+                    {/*<span className="chats-count">({chats.length})</span>*/}
                 </h1>
             </div>
 

@@ -1,43 +1,139 @@
-// src/pages/HomePage/HomePage.jsx - Обновленная версия с использованием JSON конфигурации
+// src/pages/HomePage/HomePage.jsx - Финальная версия с дизайном из ChatInput
 
-import React, { useState, useEffect } from 'react';
-import { Send, ChevronRight, History, MessageCircle, Paperclip, Mic, MicOff, Image, FileText, X } from 'lucide-react';
+import React, {useState, useEffect, useRef} from 'react';
+import {Send, Mic, MicOff, Image, X, Check} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
-import { motion } from "framer-motion";
-import { createChat, getUserChats } from "../../services/chatAPI.js";
+import { motion, AnimatePresence } from "framer-motion";
+import { createChat, getUserChats, transcribeAudio } from "../../services/chatAPI.js";
 import RecentChats from "../../components/RecentChats/RecentChats.jsx";
+import { getQuickActions, getAgentPrompt, getAgentByAction } from '../../utils/aiAgentsUtils.js';
+import { getRandomQuote } from "./quotes.js";
 
-// ✅ ИМПОРТИРУЕМ АГЕНТОВ ИЗ JSON
-import {getQuickActions, getAgentPrompt, getAgentByAction} from '../../utils/aiAgentsUtils.js';
-import {getRandomQuote} from "./quotes.js";
+const VoiceRecordingVisualizer = ({ isRecording }) => {
+    const [bars, setBars] = useState(new Array(40).fill(0.1));
+    const animationRef = useRef(null);
+    const analyserRef = useRef(null);
+    const audioContextRef = useRef(null);
+    const sourceRef = useRef(null);
 
-// Встроенные компоненты остаются те же...
-const SimpleProgressBar = ({ current, max, color = "#43ff65" }) => {
-    const percentage = Math.min((current / max) * 100, 100);
+    useEffect(() => {
+        if (!isRecording) {
+            // Останавливаем визуализацию когда запись прекращена
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+            }
+            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+                audioContextRef.current.close();
+            }
+            return;
+        }
+
+        let dataArray;
+
+        // Инициализация Web Audio API для получения данных с микрофона
+        async function initAudio() {
+            try {
+                // Запрашиваем доступ к микрофону
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                // Создаем AudioContext для анализа звука
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(stream);
+
+                // Настройки анализатора
+                analyser.fftSize = 128; // Размер FFT (влияет на детализацию)
+                analyser.smoothingTimeConstant = 0.7; // Плавность (0-1)
+
+                source.connect(analyser);
+
+                // Сохраняем ссылки
+                audioContextRef.current = audioContext;
+                analyserRef.current = analyser;
+                sourceRef.current = source;
+
+                // Массив для хранения частотных данных
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                // Запускаем анимацию
+                animate();
+            } catch (error) {
+                console.error('Ошибка доступа к микрофону:', error);
+                // Если нет доступа к микрофону, показываем фейковую анимацию
+                animateFallback();
+            }
+        }
+
+        // Функция анимации на основе реальных данных с микрофона
+        function animate() {
+            animationRef.current = requestAnimationFrame(animate);
+
+            if (!analyserRef.current) return;
+
+            // Получаем частотные данные
+            analyserRef.current.getByteFrequencyData(dataArray);
+
+            // Преобразуем данные в массив для палочек (берем 40 значений)
+            const newBars = Array.from({ length: 30 }, (_, i) => {
+                const index = Math.floor((i * dataArray.length) / 30);
+                // Нормализуем значения от 0 до 1 и добавляем минимальную высоту
+                const value = dataArray[index] / 255;
+                return Math.max(value, 0.1); // Минимум 0.1 для видимости
+            });
+
+            setBars(newBars);
+        }
+
+        // Фолбэк анимация если нет доступа к микрофону
+        function animateFallback() {
+            animationRef.current = requestAnimationFrame(animateFallback);
+
+            setBars(prev =>
+                prev.map(() => Math.random() * 0.6 + 0.2)
+            );
+        }
+
+        initAudio();
+
+        // Cleanup при размонтировании
+        return () => {
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+            }
+            if (sourceRef.current && sourceRef.current.mediaStream) {
+                sourceRef.current.mediaStream.getTracks().forEach(track => track.stop());
+            }
+            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+                audioContextRef.current.close();
+            }
+        };
+    }, [isRecording]);
+
     return (
-        <div className="progress-bar">
-            <div
-                className="progress-fill"
-                style={{
-                    width: `${percentage}%`,
-                    backgroundColor: color,
-                    height: '6px',
-                    borderRadius: '3px',
-                    transition: 'width 0.3s ease'
-                }}
-            />
+        <div className="voice-visualizer">
+            {bars.map((value, index) => (
+                <motion.div
+                    key={index}
+                    className="voice-bar"
+                    animate={{
+                        scaleY: value,
+                    }}
+                    transition={{
+                        duration: 0.1,
+                        ease: "easeOut"
+                    }}
+                />
+            ))}
         </div>
     );
 };
-
-const DAILY_QUOTES = [
-    "Образование — самое мощное оружие, которое можно использовать, чтобы изменить мир",
-    "Учиться никогда не поздно, а рано — никогда не вредно",
-    "Знание — сила, но практика — мастерство",
-    "Каждый день — новая возможность узнать что-то интересное",
-    "Лучшее время для обучения — прямо сейчас!"
-];
 
 const HomePage = ({ user: currentUser }) => {
     const navigate = useNavigate();
@@ -49,12 +145,13 @@ const HomePage = ({ user: currentUser }) => {
     const [isRecording, setIsRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [fileErrors, setFileErrors] = useState([]);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+    const [isTranscribed, setIsTranscribed] = useState(false);
+
     const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
-    const SUPPORTED_AUDIO_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/m4a', 'audio/aac'];
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
     const MAX_FILES_PER_MESSAGE = 10;
 
-    // ✅ ПОЛУЧАЕМ БЫСТРЫЕ ДЕЙСТВИЯ ИЗ JSON
     const quickActions = getQuickActions();
 
     useEffect(() => {
@@ -105,6 +202,7 @@ const HomePage = ({ user: currentUser }) => {
                         title: 'ТоварищБот'
                     }
                 });
+
             } else {
                 console.error('Failed to create chat:', chatResponse.error);
                 setError('Не удалось создать чат');
@@ -121,11 +219,9 @@ const HomePage = ({ user: currentUser }) => {
         try {
             setError(null);
 
-            // ✅ НАХОДИМ КОНФИГУРАЦИЮ ДЕЙСТВИЯ В JSON
             const actionConfig = getAgentByAction(actionType);
             if (!actionConfig) return;
 
-            // ✅ ПОЛУЧАЕМ ПРОМПТ ИЗ КОНФИГУРАЦИИ
             const agentPrompt = getAgentPrompt(actionType);
             console.log('Agent prompt for', actionType, ':', agentPrompt);
 
@@ -135,7 +231,7 @@ const HomePage = ({ user: currentUser }) => {
                 state: {
                     chatType: actionType,
                     title: actionConfig.label,
-                    agentPrompt: agentPrompt // ✅ Передаем промпт в чат
+                    agentPrompt: agentPrompt
                 }
             });
 
@@ -145,7 +241,6 @@ const HomePage = ({ user: currentUser }) => {
         }
     };
 
-    // Функция для обработки прикрепления изображений с полной валидацией
     const handleImageAttach = () => {
         const input = document.createElement('input');
         input.type = 'file';
@@ -155,32 +250,27 @@ const HomePage = ({ user: currentUser }) => {
         input.onchange = async (event) => {
             const files = Array.from(event.target.files);
 
-            // Проверка на количество файлов
             if (files.length > MAX_FILES_PER_MESSAGE) {
                 setFileErrors(prev => [...prev, `Максимум ${MAX_FILES_PER_MESSAGE} файлов за раз`]);
                 setTimeout(() => setFileErrors([]), 5000);
                 return;
             }
 
-            // Валидация файлов
             const validFiles = [];
             const errors = [];
 
             files.forEach(file => {
-                // Проверка размера
                 if (file.size > MAX_FILE_SIZE) {
                     const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
                     errors.push(`"${file.name}" слишком большой (${sizeMB}MB, макс. 50MB)`);
                     return;
                 }
 
-                // Проверка на пустой файл
                 if (file.size === 0) {
                     errors.push(`"${file.name}" пустой файл`);
                     return;
                 }
 
-                // Проверка типа файла
                 const fileType = file.type.toLowerCase();
                 if (!SUPPORTED_IMAGE_TYPES.includes(fileType)) {
                     errors.push(`"${file.name}" не поддерживается. Только изображения (JPEG, PNG, GIF, WEBP, BMP)`);
@@ -190,18 +280,15 @@ const HomePage = ({ user: currentUser }) => {
                 validFiles.push(file);
             });
 
-            // Показываем ошибки если есть
             if (errors.length > 0) {
                 setFileErrors(prev => [...prev, ...errors]);
                 setTimeout(() => setFileErrors([]), 5000);
             }
 
-            // Если нет валидных файлов - выходим
             if (validFiles.length === 0) {
                 return;
             }
 
-            // Если есть валидные файлы - создаем чат и переходим
             try {
                 setIsLoading(true);
 
@@ -210,7 +297,6 @@ const HomePage = ({ user: currentUser }) => {
                 if (chatResponse.success) {
                     const newChatId = chatResponse.data.chat_id;
 
-                    // Переходим в чат с прикрепленными изображениями
                     navigate(`/chat/${newChatId}`, {
                         state: {
                             chatType: 'general',
@@ -235,19 +321,58 @@ const HomePage = ({ user: currentUser }) => {
         input.click();
     };
 
-    // Функция начала записи аудио с валидацией
+    const handleTranscribeAudio = async (audioBlob) => {
+        try {
+            setIsTranscribing(true);
+            console.log('🎤 Начинаем транскрибацию через chatAPI...');
+
+            const result = await transcribeAudio(
+                audioBlob,
+                'ru',
+                "Ты общаешься со школьником или студентом. Если пусто - то пусто и оставь"
+            );
+
+            if (result.success && result.text) {
+                setInputValue(result.text);
+                setIsTranscribed(True);
+                console.log('✅ Текст распознан и вставлен:', result.text);
+            } else {
+                throw new Error(result.error || 'Не удалось распознать речь');
+            }
+
+        } catch (error) {
+            console.error('❌ Ошибка транскрибации:', error);
+            const errorMessage = error.message || 'Не удалось распознать речь. Попробуйте еще раз';
+            setFileErrors(prev => [...prev, errorMessage]);
+            setTimeout(() => setFileErrors([]), 5000);
+        } finally {
+            setIsTranscribing(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isTranscribed) {
+            alert(isTranscribed);
+            handleQuickSubmit();
+        }
+    }, [isTranscribed]);
+
     const startRecording = async () => {
         try {
-            // Проверяем поддержку браузера
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 setFileErrors(prev => [...prev, 'Ваш браузер не поддерживает запись аудио']);
                 setTimeout(() => setFileErrors([]), 5000);
                 return;
             }
 
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            });
 
-            // Проверяем поддержку MediaRecorder
             if (!window.MediaRecorder) {
                 setFileErrors(prev => [...prev, 'MediaRecorder не поддерживается в вашем браузере']);
                 setTimeout(() => setFileErrors([]), 5000);
@@ -255,7 +380,12 @@ const HomePage = ({ user: currentUser }) => {
                 return;
             }
 
-            const recorder = new MediaRecorder(stream);
+            const options = {
+                mimeType: 'audio/webm;codecs=opus',
+                audioBitsPerSecond: 128000
+            };
+
+            const recorder = new MediaRecorder(stream, options);
             const chunks = [];
             setMediaRecorder(recorder);
 
@@ -263,6 +393,29 @@ const HomePage = ({ user: currentUser }) => {
                 if (event.data.size > 0) {
                     chunks.push(event.data);
                 }
+            };
+
+            recorder.onstop = async () => {
+                console.log('🎤 Запись остановлена');
+
+                stream.getTracks().forEach(track => track.stop());
+
+                const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+
+                if (audioBlob.size === 0) {
+                    setFileErrors(prev => [...prev, 'Запись пустая. Попробуйте еще раз']);
+                    setTimeout(() => setFileErrors([]), 5000);
+                    return;
+                }
+
+                if (audioBlob.size > MAX_FILE_SIZE) {
+                    const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
+                    setFileErrors(prev => [...prev, `Запись слишком большая (${sizeMB}MB, макс. 50MB)`]);
+                    setTimeout(() => setFileErrors([]), 5000);
+                    return;
+                }
+
+                await handleTranscribeAudio(audioBlob);
             };
 
             recorder.onerror = (event) => {
@@ -274,6 +427,8 @@ const HomePage = ({ user: currentUser }) => {
 
             recorder.start();
             setIsRecording(true);
+            console.log('🎤 Запись началась');
+
         } catch (err) {
             console.error("Ошибка доступа к микрофону:", err);
 
@@ -292,76 +447,14 @@ const HomePage = ({ user: currentUser }) => {
         }
     };
 
-    // Функция остановки записи с валидацией
-    const stopRecording = async () => {
-        if (!mediaRecorder) return;
-
-        return new Promise((resolve) => {
-            mediaRecorder.ondataavailable = async (event) => {
-                if (event.data.size > 0) {
-                    const audioBlob = new Blob([event.data], { type: 'audio/webm' });
-
-                    // Валидация аудио файла
-                    if (audioBlob.size === 0) {
-                        setFileErrors(prev => [...prev, 'Запись пуста. Попробуйте еще раз']);
-                        setTimeout(() => setFileErrors([]), 5000);
-                        setIsRecording(false);
-                        resolve();
-                        return;
-                    }
-
-                    if (audioBlob.size > MAX_FILE_SIZE) {
-                        const sizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
-                        setFileErrors(prev => [...prev, `Запись слишком большая (${sizeMB}MB, макс. 50MB)`]);
-                        setTimeout(() => setFileErrors([]), 5000);
-                        setIsRecording(false);
-                        resolve();
-                        return;
-                    }
-
-                    const audioFile = new File([audioBlob], `voice-${Date.now()}.webm`, {
-                        type: 'audio/webm',
-                        lastModified: Date.now()
-                    });
-
-                    // Сразу создаем чат и переходим с аудио
-                    try {
-                        setIsLoading(true);
-
-                        const chatResponse = await createChat('ТоварищБот', 'general');
-
-                        if (chatResponse.success) {
-                            const newChatId = chatResponse.data.chat_id;
-
-                            navigate(`/chat/${newChatId}`, {
-                                state: {
-                                    chatType: 'general',
-                                    title: 'ТоварищБот',
-                                    attachedFiles: [audioFile],
-                                    initialMessage: inputValue.trim() || ''
-                                }
-                            });
-                        } else {
-                            throw new Error('Failed to create chat');
-                        }
-                    } catch (error) {
-                        console.error('Failed to create chat:', error);
-                        setFileErrors(prev => [...prev, 'Не удалось создать чат. Попробуйте снова']);
-                        setTimeout(() => setFileErrors([]), 5000);
-                    } finally {
-                        setIsLoading(false);
-                    }
-                }
-                resolve();
-            };
-
+    const stopRecording = () => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
-            mediaRecorder.stream.getTracks().forEach(track => track.stop());
             setIsRecording(false);
-        });
+            console.log('🛑 Остановка записи...');
+        }
     };
 
-    // Переключатель записи
     const toggleRecording = () => {
         if (!isRecording) {
             startRecording();
@@ -370,10 +463,51 @@ const HomePage = ({ user: currentUser }) => {
         }
     };
 
+    const hasContent = inputValue.trim();
+
+    const getPlaceholder = () => {
+        if (isRecording) return "Запись...";
+        if (isTranscribing) return "Расшифровка...";
+        return "Что тебя интересует?";
+    };
+
+    const cancelRecording = () => {
+        console.log('❌ Отмена записи голоса');
+
+        // Останавливаем MediaRecorder без обработки
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            // Удаляем обработчик onstop, чтобы не запускать расшифровку
+            mediaRecorder.onstop = null;
+
+            // Останавливаем запись
+            mediaRecorder.stop();
+
+            // Останавливаем все треки микрофона
+            if (mediaRecorder.stream) {
+                mediaRecorder.stream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log('🔇 Трек микрофона остановлен');
+                });
+            }
+        }
+
+        // Сбрасываем состояния
+        setIsRecording(false);
+        setMediaRecorder(null);
+
+    };
+
+    const confirmRecording = () => {
+        // Останавливаем запись (при этом сработает onstop обработчик с расшифровкой)
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            setIsRecording(false);
+        }
+    };
+
     return (
         <div className="home-page">
             <div className="home-container">
-                {/* Заголовок с приветствием */}
                 <div className="welcome-section">
                     <h1 className="welcome-message">
                         Чем я могу тебе сегодня помочь?
@@ -388,80 +522,145 @@ const HomePage = ({ user: currentUser }) => {
                 </div>
 
                 <div className="panel">
-
-                    {/* Поле ввода */}
                     <div className="input-section">
                         <form onSubmit={handleQuickSubmit}>
-                            <div className="input-container">
-                                <input
-                                    type="text"
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                    placeholder="Что тебя интересует?"
-                                    className="main-input"
-                                    disabled={isLoading}
-                                />
-                                <div className="input-actions">
-                                    {/* Показываем кнопки только если нет текста и файлов */}
-                                    {!inputValue.trim() ? (
-                                        <>
-                                            <button
-                                                type="button"
-                                                className="input-action-btn"
-                                                onClick={handleImageAttach}
-                                                disabled={isLoading}
-                                                title="Прикрепить изображение"
-                                            >
-                                                <Image className="icon"/>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={`input-action-btn ${isRecording ? 'recording' : ''}`}
-                                                onClick={toggleRecording}
-                                                disabled={isLoading}
-                                                title={isRecording ? "Остановить запись" : "Записать голосовое"}
-                                            >
-                                                {isRecording ? <MicOff className="icon"/> : <Mic className="icon"/>}
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button
-                                            type="submit"
-                                            className="input-action-btn"
-                                            disabled={(!inputValue.trim()) || isLoading}
+                            <div className={`home-input-wrapper ${isRecording ? 'recording' : ''}`}>
+
+                                {/* Показываем визуализатор во время записи */}
+                                <AnimatePresence mode="wait">
+                                    {isRecording ? (
+                                        <motion.div
+                                            key="visualizer"
+                                            className="recording-visualizer-container"
+                                            initial={{opacity: 0, scale: 0.95}}
+                                            animate={{opacity: 1, scale: 1}}
+                                            exit={{opacity: 0, scale: 0.95}}
+                                            transition={{duration: 0.2}}
                                         >
-                                            <Send size={16}/>
-                                        </button>
+                                            <VoiceRecordingVisualizer isRecording={isRecording}/>
+                                        </motion.div>
+                                    ) : (
+                                        <>
+                                            <input
+                                                type="text"
+                                                value={inputValue}
+                                                onChange={(e) => setInputValue(e.target.value)}
+                                                placeholder={getPlaceholder()}
+                                                className={`home-input ${isRecording ? 'recording' : ''}`}
+                                                disabled={isLoading || isRecording || isTranscribing}
+                                            />
+                                        </>
                                     )}
-                                </div>
+                                </AnimatePresence>
+
+                                <AnimatePresence mode="wait">
+                                    {isRecording ? (
+                                        <div className="recording-controls">
+                                            <motion.button
+                                                key="cancel"
+                                                className="cancel-recording-btn"
+                                                onClick={cancelRecording}
+                                                initial={{ scale: 0, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                exit={{ scale: 0, opacity: 0 }}
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                title="Отменить запись"
+                                            >
+                                                <X size={18} />
+                                            </motion.button>
+                                            <motion.button
+                                                key="confirm"
+                                                className="confirm-recording-btn"
+                                                onClick={confirmRecording}
+                                                initial={{ scale: 0, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                exit={{ scale: 0, opacity: 0 }}
+                                                whileHover={{ scale: 1.1 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                title="Отправить запись"
+                                            >
+                                                <Check size={18} />
+                                            </motion.button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {hasContent ? (
+                                                <motion.button
+                                                    key="send"
+                                                    type="submit"
+                                                    className="home-send-btn"
+                                                    disabled={isLoading || isTranscribing}
+                                                    initial={{scale: 0, opacity: 0}}
+                                                    animate={{scale: 1, opacity: 1}}
+                                                    exit={{scale: 0, opacity: 0}}
+                                                    whileHover={{scale: 1.1}}
+                                                    whileTap={{scale: 0.9}}
+                                                    title="Отправить"
+                                                >
+                                                    <Send size={18}/>
+                                                </motion.button>
+                                            ) : (
+                                                <>
+                                                    <motion.button
+                                                        type="button"
+                                                        className="home-attachment-btn"
+                                                        onClick={handleImageAttach}
+                                                        disabled={isLoading || isRecording || isTranscribing}
+                                                        whileHover={{scale: 1.1}}
+                                                        whileTap={{scale: 0.9}}
+                                                        title="Прикрепить изображение"
+                                                    >
+                                                        <Image size={20}/>
+                                                    </motion.button>
+
+                                                    <motion.button
+                                                        key="voice"
+                                                        type="button"
+                                                        className={`home-voice-btn ${isRecording ? 'recording' : ''}`}
+                                                        onClick={toggleRecording}
+                                                        disabled={isLoading || isTranscribing}
+                                                        animate={{scale: 1, opacity: 1}}
+                                                        exit={{scale: 0, opacity: 0}}
+                                                        whileHover={{scale: isRecording ? 1 : 1.1}}
+                                                        whileTap={{scale: 0.9}}
+                                                        title={isRecording ? "Остановить запись" : "Записать голосовое"}
+                                                    >
+                                                        {isRecording ? <MicOff size={18}/> : <Mic size={18}/>}
+                                                    </motion.button>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </form>
+
                     </div>
 
-                    {/* Уведомления об ошибках */}
-                    {fileErrors.length > 0 && (
-                        <div className="file-errors-home">
-                            {fileErrors.map((error, index) => (
-                                <motion.div
-                                    key={index}
-                                    className="error-notification"
-                                    initial={{ opacity: 0, x: 100, scale: 0.8 }}
-                                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                                    exit={{ opacity: 0, x: 100, scale: 0.8 }}
-                                    transition={{ duration: 0.3 }}
-                                    onClick={() => {
-                                        // Удаляем конкретное уведомление при клике
-                                        setFileErrors(prev => prev.filter((_, i) => i !== index));
-                                    }}
-                                    style={{ cursor: 'pointer' }}
-                                >
-                                    {error}
-                                </motion.div>
-                            ))}
-                        </div>
-                    )}
+                    <AnimatePresence>
+                        {fileErrors.length > 0 && (
+                            <div className="file-errors-home">
+                                {fileErrors.map((error, index) => (
+                                    <motion.div
+                                        key={index}
+                                        className="error-notification"
+                                        initial={{opacity: 0, x: 100, scale: 0.8}}
+                                        animate={{opacity: 1, x: 0, scale: 1}}
+                                        exit={{opacity: 0, x: 100, scale: 0.8}}
+                                        transition={{duration: 0.3}}
+                                        onClick={() => {
+                                            setFileErrors(prev => prev.filter((_, i) => i !== index));
+                                        }}
+                                        style={{cursor: 'pointer'}}
+                                    >
+                                        {error}
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </AnimatePresence>
 
-                    {/* ✅ БЫСТРЫЕ ДЕЙСТВИЯ ИЗ JSON */}
                     <div className="quick-actions">
                         {quickActions.map((action) => {
                             const IconComponent = action.icon;
@@ -482,7 +681,6 @@ const HomePage = ({ user: currentUser }) => {
                     </div>
                 </div>
 
-                {/* Последние чаты */}
                 <div style={{marginTop: '35px'}}>
                     {error && (
                         <div style={{
@@ -530,13 +728,192 @@ const HomePage = ({ user: currentUser }) => {
                 </div>
             </div>
 
-            {/* CSS анимации */}
-            <style jsx>{`
+            <style>{`
+                .home-input-wrapper {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    border-radius: 24px;
+                    padding: 8px;
+                    border: 2px solid #7e7e7e;
+                    transition: all 0.3s ease;
+                    position: relative;
+                }
+
+                .home-input-wrapper:focus-within {
+                    border-color: #43ff65;
+                }
+
+                .home-input-wrapper.recording {
+                    border: 2px solid #43ff65 !important;
+                    box-shadow: 0 0 0 4px rgba(67, 255, 101, 0.15);
+                    animation: recordingPulse 2s ease-in-out infinite;
+                }
+
+                @keyframes recordingPulse {
+                    0%, 100% {
+                        box-shadow: 0 0 0 4px rgba(67, 255, 101, 0.15);
+                    }
+                    50% {
+                        box-shadow: 0 0 0 8px rgba(67, 255, 101, 0.25);
+                    }
+                }
+
+                .home-attachment-btn,
+                .home-send-btn,
+                .home-voice-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 40px;
+                    height: 40px;
+                    background: transparent;
+                    border: none;
+                    color: #9e9e9e;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    flex-shrink: 0;
+                }
+
+                .home-attachment-btn:hover:not(:disabled) {
+                    background: #2a2a2a;
+                }
+
+                .home-send-btn {
+                    background: #43ff65;
+                    color: #0d0d0d;
+                }
+
+                .home-send-btn:hover:not(:disabled) {
+                    background: #3de558;
+                    transform: scale(1.05);
+                }
+
+                .home-voice-btn.recording {
+                    background: #43ff65 !important;
+                    color: #0d0d0d !important;
+                    animation: microphonePulse 1.5s ease-in-out infinite;
+                }
+
+                @keyframes microphonePulse {
+                    0%, 100% {
+                        transform: scale(1);
+                    }
+                    50% {
+                        transform: scale(1.1);
+                    }
+                }
+
+                .home-voice-btn:hover:not(.recording):not(:disabled) {
+                    background: #2a2a2a;
+                }
+
+                button:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+
+                .home-input {
+                    flex: 1;
+                    background: transparent;
+                    border: none;
+                    color: #ffffff;
+                    font-size: 15px;
+                    outline: none;
+                    padding: 8px;
+                    font-family: inherit;
+                    line-height: 1.5;
+                }
+
+                .home-input::placeholder {
+                    color: #666666;
+                    transition: color 0.3s ease;
+                }
+
+                .home-input.recording::placeholder {
+                    color: #43ff65;
+                    animation: placeholderBlink 1.5s ease-in-out infinite;
+                }
+
+                @keyframes placeholderBlink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.6; }
+                }
+
+                .home-input:disabled {
+                    cursor: not-allowed;
+                }
+
+                .transcribing-indicator {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 10px 15px;
+                    margin-top: 12px;
+                    background: rgba(67, 255, 101, 0.1);
+                    border: 1px solid rgba(67, 255, 101, 0.2);
+                    border-radius: 8px;
+                    font-size: 14px;
+                    color: #43ff65;
+                    animation: fadeIn 0.3s ease-in-out;
+                }
+
+                .transcribing-spinner {
+                    width: 14px;
+                    height: 14px;
+                    border: 2px solid rgba(67, 255, 101, 0.3);
+                    border-top: 2px solid #43ff65;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                }
+
                 @keyframes spin {
                     from { transform: rotate(0deg); }
                     to { transform: rotate(360deg); }
                 }
-                
+
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .file-errors-home {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 1000;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    max-width: 400px;
+                }
+
+                .error-notification {
+                    padding: 12px 16px;
+                    background-color: rgba(239, 68, 68, 0.1);
+                    border: 1px solid rgba(239, 68, 68, 0.3);
+                    border-left: 3px solid #ef4444;
+                    border-radius: 8px;
+                    color: #ff6b6b;
+                    font-size: 14px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    backdrop-filter: blur(10px);
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .error-notification:hover {
+                    background-color: rgba(239, 68, 68, 0.15);
+                    transform: translateX(-5px);
+                }
+
                 .loading-spinner {
                     width: 16px;
                     height: 16px;
@@ -553,6 +930,83 @@ const HomePage = ({ user: currentUser }) => {
                     overflow: hidden;
                     margin: 24px auto;
                     max-width: 280px;
+                }
+
+                @media (max-width: 768px) {
+                    .file-errors-home {
+                        top: 10px;
+                        right: 10px;
+                        left: 10px;
+                        max-width: none;
+                    }
+
+                    .error-notification {
+                        font-size: 13px;
+                        padding: 10px 14px;
+                    }
+
+                    .transcribing-indicator {
+                        font-size: 13px;
+                        padding: 8px 12px;
+                    }
+                }
+                
+                /* Визуализатор записи голоса */
+                .recording-visualizer-container {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 8px;
+                    height: 30px;
+                }
+
+                .voice-visualizer {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 3px;
+                    height: 40px;
+                    width: 100%;
+                    max-width: 600px;
+                }
+
+                .voice-bar {
+                    width: 3px;
+                    height: 100%;
+                    background: #43ff65;
+                    border-radius: 2px;
+                    transform-origin: center;
+                    opacity: 0.85;
+                }
+                
+                .cancel-recording-btn,
+                .confirm-recording-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 40px;
+                    height: 40px;
+                    background: transparent;
+                    border: none;
+                    color: #ffffff;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    flex-shrink: 0;
+                }
+                
+                .cancel-recording-btn {
+                    color: #ef4444;
+                }
+
+                .cancel-recording-btn:hover {
+                    background: rgba(239, 68, 68, 0.1);
+                }
+                
+                .recording-controls {
+                    display: flex;
+                    gap: 8px;
                 }
             `}</style>
         </div>
