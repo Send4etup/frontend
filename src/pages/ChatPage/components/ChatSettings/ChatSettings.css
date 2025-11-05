@@ -157,6 +157,7 @@
 }
 
 .setting-label {
+    text-align: left;
     font-size: 14px;
     font-weight: 500;
     color: #ffffff;
@@ -164,6 +165,7 @@
 }
 
 .setting-description {
+    text-align: left;
     font-size: 12px;
     color: #888888;
     line-height: 1.4;
@@ -356,6 +358,7 @@
 
 .action-buttons {
     display: flex;
+    transition: all 0.2s ease;
     gap: 12px;
 }
 
@@ -392,10 +395,11 @@
     background: linear-gradient(135deg, #43ff65 0%, #3ee557 100%);
     color: #0d0d0d;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .save-btn.has-changes:hover {
-    transform: translateY(-2px);
+    /*transform: translateY(-2px);*/
     box-shadow: 0 4px 12px rgba(67, 255, 101, 0.3);
 }
 

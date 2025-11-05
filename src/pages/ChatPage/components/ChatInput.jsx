@@ -73,7 +73,7 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
             analyserRef.current.getByteFrequencyData(dataArray);
 
             // Преобразуем данные в массив для палочек (берем 40 значений)
-            const newBars = Array.from({ length: 40 }, (_, i) => {
+            const newBars = Array.from({ length: 25 }, (_, i) => {
                 const index = Math.floor((i * dataArray.length) / 40);
                 // Нормализуем значения от 0 до 1 и добавляем минимальную высоту
                 const value = dataArray[index] / 255;

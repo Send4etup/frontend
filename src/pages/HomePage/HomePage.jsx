@@ -81,7 +81,7 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
             analyserRef.current.getByteFrequencyData(dataArray);
 
             // Преобразуем данные в массив для палочек (берем 40 значений)
-            const newBars = Array.from({ length: 30 }, (_, i) => {
+            const newBars = Array.from({ length: 25 }, (_, i) => {
                 const index = Math.floor((i * dataArray.length) / 30);
                 // Нормализуем значения от 0 до 1 и добавляем минимальную высоту
                 const value = dataArray[index] / 255;
@@ -184,7 +184,10 @@ const HomePage = ({ user: currentUser }) => {
     };
 
     const handleQuickSubmit = async (e) => {
-        e.preventDefault();
+
+        if (e && e.preventDefault) {
+            e.preventDefault();
+        }
 
         if (!inputValue.trim()) return;
 
@@ -334,7 +337,8 @@ const HomePage = ({ user: currentUser }) => {
 
             if (result.success && result.text) {
                 setInputValue(result.text);
-                setIsTranscribed(True);
+                setIsTranscribed(true);
+
                 console.log('✅ Текст распознан и вставлен:', result.text);
             } else {
                 throw new Error(result.error || 'Не удалось распознать речь');
@@ -352,8 +356,8 @@ const HomePage = ({ user: currentUser }) => {
 
     useEffect(() => {
         if (isTranscribed) {
-            alert(isTranscribed);
             handleQuickSubmit();
+            setIsTranscribed(false);
         }
     }, [isTranscribed]);
 
@@ -524,7 +528,7 @@ const HomePage = ({ user: currentUser }) => {
                 <div className="panel">
                     <div className="input-section">
                         <form onSubmit={handleQuickSubmit}>
-                            <div className={`home-input-wrapper ${isRecording ? 'recording' : ''}`}>
+                            <div className={`home-input-container ${isRecording ? 'recording' : ''}`}>
 
                                 {/* Показываем визуализатор во время записи */}
                                 <AnimatePresence mode="wait">
@@ -553,86 +557,89 @@ const HomePage = ({ user: currentUser }) => {
                                     )}
                                 </AnimatePresence>
 
-                                <AnimatePresence mode="wait">
-                                    {isRecording ? (
-                                        <div className="recording-controls">
-                                            <motion.button
-                                                key="cancel"
-                                                className="cancel-recording-btn"
-                                                onClick={cancelRecording}
-                                                initial={{ scale: 0, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                exit={{ scale: 0, opacity: 0 }}
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                title="Отменить запись"
-                                            >
-                                                <X size={18} />
-                                            </motion.button>
-                                            <motion.button
-                                                key="confirm"
-                                                className="confirm-recording-btn"
-                                                onClick={confirmRecording}
-                                                initial={{ scale: 0, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                exit={{ scale: 0, opacity: 0 }}
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                title="Отправить запись"
-                                            >
-                                                <Check size={18} />
-                                            </motion.button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {hasContent ? (
+                                <div className="input-actions">
+                                    <AnimatePresence mode="wait">
+                                        {isRecording ? (
+                                            <div className="recording-controls">
                                                 <motion.button
-                                                    key="send"
-                                                    type="submit"
-                                                    className="home-send-btn"
-                                                    disabled={isLoading || isTranscribing}
-                                                    initial={{scale: 0, opacity: 0}}
-                                                    animate={{scale: 1, opacity: 1}}
-                                                    exit={{scale: 0, opacity: 0}}
-                                                    whileHover={{scale: 1.1}}
-                                                    whileTap={{scale: 0.9}}
-                                                    title="Отправить"
+                                                    key="cancel"
+                                                    className="cancel-recording-btn"
+                                                    onClick={cancelRecording}
+                                                    initial={{ scale: 0, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    exit={{ scale: 0, opacity: 0 }}
+                                                    // whileHover={{ scale: 1.1 }}
+                                                    whileTap={{ scale: 0.9 }}
+                                                    title="Отменить запись"
                                                 >
-                                                    <Send size={18}/>
+                                                    <X size={18} />
                                                 </motion.button>
-                                            ) : (
-                                                <>
+                                                <motion.button
+                                                    key="confirm"
+                                                    className="confirm-recording-btn"
+                                                    onClick={confirmRecording}
+                                                    initial={{ scale: 0, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    exit={{ scale: 0, opacity: 0 }}
+                                                    // whileHover={{ scale: 1.1 }}
+                                                    whileTap={{ scale: 0.9 }}
+                                                    title="Отправить запись"
+                                                >
+                                                    <Check size={18} />
+                                                </motion.button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {hasContent ? (
                                                     <motion.button
-                                                        type="button"
-                                                        className="home-attachment-btn"
-                                                        onClick={handleImageAttach}
-                                                        disabled={isLoading || isRecording || isTranscribing}
-                                                        whileHover={{scale: 1.1}}
-                                                        whileTap={{scale: 0.9}}
-                                                        title="Прикрепить изображение"
-                                                    >
-                                                        <Image size={20}/>
-                                                    </motion.button>
-
-                                                    <motion.button
-                                                        key="voice"
-                                                        type="button"
-                                                        className={`home-voice-btn ${isRecording ? 'recording' : ''}`}
-                                                        onClick={toggleRecording}
+                                                        key="send"
+                                                        type="submit"
+                                                        className="home-send-btn"
                                                         disabled={isLoading || isTranscribing}
+                                                        initial={{scale: 0, opacity: 0}}
                                                         animate={{scale: 1, opacity: 1}}
                                                         exit={{scale: 0, opacity: 0}}
-                                                        whileHover={{scale: isRecording ? 1 : 1.1}}
+                                                        whileHover={{scale: 1.1}}
                                                         whileTap={{scale: 0.9}}
-                                                        title={isRecording ? "Остановить запись" : "Записать голосовое"}
+                                                        title="Отправить"
                                                     >
-                                                        {isRecording ? <MicOff size={18}/> : <Mic size={18}/>}
+                                                        <Send size={18}/>
                                                     </motion.button>
-                                                </>
-                                            )}
-                                        </>
-                                    )}
-                                </AnimatePresence>
+                                                ) : (
+                                                    <>
+                                                        <motion.button
+                                                            type="button"
+                                                            className="home-attachment-btn"
+                                                            onClick={handleImageAttach}
+                                                            disabled={isLoading || isRecording || isTranscribing}
+                                                            whileHover={{scale: 1.1}}
+                                                            whileTap={{scale: 0.9}}
+                                                            title="Прикрепить изображение"
+                                                        >
+                                                            <Image size={20}/>
+                                                        </motion.button>
+
+                                                        <motion.button
+                                                            key="voice"
+                                                            type="button"
+                                                            className={`home-voice-btn ${isRecording ? 'recording' : ''}`}
+                                                            onClick={toggleRecording}
+                                                            disabled={isLoading || isTranscribing}
+                                                            animate={{scale: 1, opacity: 1}}
+                                                            exit={{scale: 0, opacity: 0}}
+                                                            whileHover={{scale: isRecording ? 1 : 1.1}}
+                                                            whileTap={{scale: 0.9}}
+                                                            title={isRecording ? "Остановить запись" : "Записать голосовое"}
+                                                        >
+                                                            {isRecording ? <MicOff size={18}/> : <Mic size={18}/>}
+                                                        </motion.button>
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
+                                    </AnimatePresence>
+
+                                </div>
                             </div>
                         </form>
 

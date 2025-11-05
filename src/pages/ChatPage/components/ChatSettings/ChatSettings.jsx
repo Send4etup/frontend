@@ -1,7 +1,7 @@
 // src/pages/ChatPage/components/ChatSettings/ChatSettings.jsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, RotateCcw } from 'lucide-react';
+import { X, RotateCcw, ChevronDown } from 'lucide-react';
 import { getSettingsForChatType, getDefaultSettings } from './settingsConfig';
 import './ChatSettings.css';
 
@@ -65,7 +65,7 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
         const value = settings[setting.id] ?? setting.defaultValue;
 
         switch (setting.type) {
-            case 'slider':
+            case "slider":
                 return (
                     <div className="setting-slider">
                         <input
@@ -74,7 +74,9 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
                             max={setting.max}
                             step={setting.step}
                             value={value}
-                            onChange={(e) => handleSettingChange(setting.id, parseFloat(e.target.value))}
+                            onChange={(e) =>
+                                handleSettingChange(setting.id, parseFloat(e.target.value))
+                            }
                             className="slider-input"
                         />
                         <span className="slider-value">{setting.format(value)}</span>
@@ -83,26 +85,22 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
 
             case 'select':
                 return (
-                    <select
+                    <CustomSelect
+                        setting={setting}
                         value={value}
-                        onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-                        className="select-input"
-                    >
-                        {setting.options.map(option => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
+                        onChange={(val) => handleSettingChange(setting.id, val)}
+                    />
                 );
 
-            case 'toggle':
+            case "toggle":
                 return (
                     <label className="toggle-switch">
                         <input
                             type="checkbox"
                             checked={value}
-                            onChange={(e) => handleSettingChange(setting.id, e.target.checked)}
+                            onChange={(e) =>
+                                handleSettingChange(setting.id, e.target.checked)
+                            }
                         />
                         <span className="toggle-slider"></span>
                     </label>
@@ -112,6 +110,66 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
                 return null;
         }
     };
+
+    function CustomSelect({ setting, value, onChange }) {
+        const [open, setOpen] = useState(false);
+
+        return (
+            <div className="relative w-full border-white">
+                <button
+                    type="button"
+                    onClick={() => setOpen(!open)}
+                    className="flex items-center justify-between w-full px-4 py-3 bg-zinc-900 rounded-2xl border border-zinc-700 hover:border-green-500 transition"
+                >
+                    <span>
+                      {setting.options.find((opt) => opt.value === value)?.label ??
+                          "Выбери вариант"}
+                    </span>
+                    <ChevronDown
+                        className={`w-4 h-4 transition-transform ${
+                            open ? "rotate-180" : ""
+                        }`}
+                    />
+                </button>
+
+                <AnimatePresence>
+                    {open && (
+                        <motion.ul
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            className="absolute left-0 right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-2xl overflow-hidden shadow-lg z-50"
+                        >
+                            {setting.options.map((opt, index) => (
+                                <li
+                                    key={opt.value}
+                                    onClick={() => {
+                                        onChange(opt.value)
+                                        setOpen(false)
+                                    }}
+                                    className={`relative flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-zinc-800 transition`}
+                                >
+                                    <span>{opt.label}</span>
+
+                                    <span className="relative flex items-center justify-center w-3 h-3 rounded-full border border-white">
+                                      {value === opt.value && (
+                                          <span className="w-2 h-2 bg-green-400 rounded-full" />
+                                      )}
+                                    </span>
+
+                                    {/* белая линия снизу */}
+                                    {index !== setting.options.length - 1 && (
+                                        <span className="absolute bottom-0 left-[15%] w-[70%] h-px bg-white/30" />
+                                    )}
+                                </li>
+                            ))}
+
+                        </motion.ul>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
+    }
 
     // Анимации для модального окна
     const backdropVariants = {
@@ -162,13 +220,20 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
                         <div className="settings-header">
 
                             <h2 className="settings-title">Настройки</h2>
-                            <button
-                                className=""
-                                onClick={handleReset}
-                                title="Сбросить к настройкам по умолчанию"
+                            <motion.button
+                                className="close-settings-btn"
+                                onClick={handleCancel}
+                                title="Закрыть настройки"
+                                whileHover={{
+                                    scale: 1.2,
+                                    transition: {
+                                        duration: 1.2,
+                                        ease: [0.68, -0.55, 0.265, 1.55] // cubic-bezier для плавной анимации
+                                    }
+                                }}
                             >
-                                <RotateCcw size={16}/>
-                            </button>
+                                <X size={16} />
+                            </motion.button>
                         </div>
 
                         {/* Контент настроек */}
@@ -220,17 +285,25 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
                                     </div>
                                 </div>
                             )}
+
+                            <button
+                                className="reset-btn"
+                                onClick={handleReset}
+                                title="Сбросить к настройкам по умолчанию"
+                            >
+                                <p>Сбросить настройки</p>
+                            </button>
                         </div>
 
                         {/* Футер с кнопками */}
                         <div className="settings-footer">
                             <div className="action-buttons">
-                                <button
-                                    className="cancel-btn"
-                                    onClick={handleCancel}
-                                >
-                                    Отмена
-                                </button>
+                                {/*<button*/}
+                                {/*    className="cancel-btn"*/}
+                                {/*    onClick={handleCancel}*/}
+                                {/*>*/}
+                                {/*    Отмена*/}
+                                {/*</button>*/}
                                 <button
                                     className={`save-btn ${hasChanges ? 'has-changes' : ''}`}
                                     onClick={handleSave}

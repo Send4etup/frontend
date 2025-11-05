@@ -593,7 +593,7 @@ const ChatPage = () => {
                 role: 'user',
                 content: text,
                 timestamp: new Date().toISOString(),
-                // files: attachedFiles.length > 0 ? [...attachedFiles] : undefined,
+                files: attachedFiles.length > 0 ? [...attachedFiles] : undefined,
                 status: 'sending'
             };
 
