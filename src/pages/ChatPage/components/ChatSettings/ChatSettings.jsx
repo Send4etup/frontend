@@ -1,7 +1,15 @@
 // src/pages/ChatPage/components/ChatSettings/ChatSettings.jsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, RotateCcw, ChevronDown } from 'lucide-react';
+import {
+    X,
+    RotateCcw,
+    ChevronDown,
+    Sparkles,
+    Wand2,
+    Zap,
+    CheckCircle2, SettingsIcon,
+} from 'lucide-react';
 import { getSettingsForChatType, getDefaultSettings } from './settingsConfig';
 import './ChatSettings.css';
 
@@ -12,8 +20,10 @@ import './ChatSettings.css';
  * @param {function} onSave - Callback для сохранения настроек
  * @param {string} chatType - Тип чата (coding, image, essay и т.д.)
  * @param {object} currentSettings - Текущие настройки чата
+ * @param {boolean} isAutoMode - мод настроек
+ * @param setIsAutoMode
  */
-const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) => {
+const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings, isAutoMode, setIsAutoMode }) => {
     // Локальное состояние для редактирования настроек
     const [settings, setSettings] = useState(currentSettings || {});
     const [hasChanges, setHasChanges] = useState(false);
@@ -33,6 +43,10 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
         const changed = JSON.stringify(settings) !== JSON.stringify(currentSettings);
         setHasChanges(changed);
     }, [settings, currentSettings]);
+
+    useEffect(() => {
+        localStorage.setItem(`chatSettings_${chatType}_mode`, isAutoMode ? 'auto' : 'manual');
+    }, [isAutoMode, chatType]);
 
     // Обработчик изменения настройки
     const handleSettingChange = (settingId, value) => {
@@ -58,6 +72,10 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
     const handleCancel = () => {
         setSettings(currentSettings); // Восстанавливаем оригинальные настройки
         onClose();
+    };
+
+    const handleModeChange = (mode) => {
+        setIsAutoMode(mode === 'auto');
     };
 
     // Рендер отдельного элемента настройки
@@ -171,6 +189,42 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
         );
     }
 
+    const AutoModeWidget = () => (
+        <motion.div
+            className="auto-mode-widget"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+        >
+            <div className="auto-mode-icon-container">
+                <Sparkles className="auto-mode-icon" />
+            </div>
+
+            <h3 className="auto-mode-title">ИИ всё настроит сам</h3>
+
+            <p className="auto-mode-description">
+                Искусственный интеллект автоматически подберет оптимальные параметры
+                для работы в зависимости от контекста и твоих запросов
+            </p>
+
+            <div className="auto-mode-features">
+                <div className="auto-mode-feature">
+                    <Zap className="feature-icon" />
+                    <span>Автоматическая оптимизация температуры</span>
+                </div>
+                <div className="auto-mode-feature">
+                    <Wand2 className="feature-icon" />
+                    <span>Динамическая длина ответов</span>
+                </div>
+                <div className="auto-mode-feature">
+                    <CheckCircle2 className="feature-icon" />
+                    <span>Адаптивный стиль общения</span>
+                </div>
+            </div>
+        </motion.div>
+    );
+
     // Анимации для модального окна
     const backdropVariants = {
         hidden: { opacity: 0 },
@@ -232,87 +286,116 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings }) =>
                                     }
                                 }}
                             >
-                                <X size={16} />
+                                <X size={16}/>
                             </motion.button>
                         </div>
 
-                        {/* Контент настроек */}
+                        <div className="mode-selector-container">
+                            <div className="mode-selector">
+                                <motion.button
+                                    className={`mode-option ${isAutoMode ? 'active' : ''}`}
+                                    onClick={() => handleModeChange('auto')}
+                                    whileHover={{scale: 1.02}}
+                                    whileTap={{scale: 0.98}}
+                                >
+                                    <Sparkles className="mode-icon"/>
+                                    <span>Авто</span>
+                                </motion.button>
+
+                                <motion.button
+                                    className={`mode-option ${!isAutoMode ? 'active' : ''}`}
+                                    onClick={() => handleModeChange('manual')}
+                                    whileHover={{scale: 1.02}}
+                                    whileTap={{scale: 0.98}}
+                                >
+                                    <SettingsIcon className="mode-icon"/>
+                                    <span>Ручной</span>
+                                </motion.button>
+                            </div>
+                        </div>
+
                         <div className="settings-content">
-                            {/* Общие настройки */}
-                            <div className="settings-section">
-                                <h3 className="section-title">Общие настройки</h3>
-                                <div className="settings-list">
-                                    {general.map(setting => (
-                                        <div key={setting.id} className="setting-item">
-                                            <div className="setting-info">
-                                                <label className="setting-label">
-                                                    {setting.label}
-                                                </label>
-                                                <span className="setting-description">
+                            <AnimatePresence mode="wait">
+                                {isAutoMode ? (
+                                    <AutoModeWidget key="auto-widget" />
+                                ) : (
+                                    <motion.div
+                                        key="manual-settings"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 20 }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        {/* Все настройки как были */}
+                                        <div className="settings-section">
+                                            <h3 className="section-title">Общие настройки</h3>
+                                            <div className="settings-list">
+                                                {general.map(setting => (
+                                                    <div key={setting.id} className="setting-item">
+                                                        <div className="setting-info">
+                                                            <label className="setting-label">
+                                                                {setting.label}
+                                                            </label>
+                                                            <span className="setting-description">
                                                     {setting.description}
                                                 </span>
-                                            </div>
-                                            <div className="setting-control">
-                                                {renderSettingControl(setting)}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                                                        </div>
+                                                        <div className="setting-control">
+                                                            {renderSettingControl(setting)}
+                                                        </div>
+                                                    </div>
+                                                ))}
 
-                            {/* Специфичные настройки (если есть) */}
-                            {specific.length > 0 && (
-                                <div className="settings-section">
-                                    <h3 className="section-title">
-                                        Настройки для данного режима
-                                    </h3>
-                                    <div className="settings-list">
-                                        {specific.map(setting => (
-                                            <div key={setting.id} className="setting-item">
-                                                <div className="setting-info">
-                                                    <label className="setting-label">
-                                                        {setting.label}
-                                                    </label>
-                                                    <span className="setting-description">
+                                                {specific.length > 0 && (
+                                                    <div className="settings-section">
+                                                        <h3 className="section-title">
+                                                            Настройки для данного режима
+                                                        </h3>
+                                                        <div className="settings-list">
+                                                            {specific.map(setting => (
+                                                                <div key={setting.id} className="setting-item">
+                                                                    <div className="setting-info">
+                                                                        <label className="setting-label">
+                                                                            {setting.label}
+                                                                        </label>
+                                                                        <span className="setting-description">
                                                         {setting.description}
                                                     </span>
-                                                </div>
-                                                <div className="setting-control">
-                                                    {renderSettingControl(setting)}
-                                                </div>
+                                                                    </div>
+                                                                    <div className="setting-control">
+                                                                        {renderSettingControl(setting)}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                        </div>
 
-                            <button
-                                className="reset-btn"
-                                onClick={handleReset}
-                                title="Сбросить к настройкам по умолчанию"
-                            >
-                                <p>Сбросить настройки</p>
-                            </button>
+                                        <button className="reset-btn" onClick={handleReset}>
+                                            <RotateCcw size={16} />
+                                            <p>Сбросить настройки</p>
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {/* Футер с кнопками */}
-                        <div className="settings-footer">
-                            <div className="action-buttons">
-                                {/*<button*/}
-                                {/*    className="cancel-btn"*/}
-                                {/*    onClick={handleCancel}*/}
-                                {/*>*/}
-                                {/*    Отмена*/}
-                                {/*</button>*/}
-                                <button
-                                    className={`save-btn ${hasChanges ? 'has-changes' : ''}`}
-                                    onClick={handleSave}
-                                    disabled={!hasChanges}
-                                >
-                                    Сохранить
-                                </button>
+                        {!isAutoMode && (
+                            <div className="settings-footer">
+                                <div className="action-buttons">
+                                    <button
+                                        className={`save-btn ${hasChanges ? 'has-changes' : ''}`}
+                                        onClick={handleSave}
+                                        disabled={!hasChanges}
+                                    >
+                                        Сохранить
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </motion.div>
                 </motion.div>
             )}

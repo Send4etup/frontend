@@ -324,6 +324,163 @@
 }
 
 /* ===================================
+   ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ
+   =================================== */
+.mode-selector-container {
+    padding: 10px 16px;
+    border-bottom: 1px solid #2a2a2a;
+    background: #0d0d0d;
+}
+
+.mode-selector {
+    display: flex;
+    gap: 8px;
+    background: #1a1a1a;
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid #2a2a2a;
+}
+
+.mode-option {
+    flex: 1;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #888888;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.mode-option:hover {
+    background: #2a2a2a;
+    color: #ffffff;
+}
+
+.mode-option.active {
+    background: linear-gradient(135deg, #43ff65 0%, #3ee557 100%);
+    color: #0d0d0d;
+    box-shadow: 0 2px 8px rgba(67, 255, 101, 0.3);
+}
+
+.mode-option.active:hover {
+    background: linear-gradient(135deg, #3ee557 0%, #43ff65 100%);
+}
+
+.mode-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* ===================================
+   ВИДЖЕТ АВТОМАТИЧЕСКОГО РЕЖИМА
+   =================================== */
+.auto-mode-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 300px;
+}
+
+.auto-mode-icon-container {
+    width: 120px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(67, 255, 101, 0.1) 0%, rgba(67, 255, 101, 0.05) 100%);
+    border: 2px solid rgba(67, 255, 101, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.auto-mode-icon-container::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(67, 255, 101, 0.2), transparent);
+    opacity: 0;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+.auto-mode-icon {
+    width: 64px;
+    height: 64px;
+    color: #43ff65;
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.auto-mode-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 12px 0;
+}
+
+.auto-mode-description {
+    font-size: 15px;
+    color: #888888;
+    line-height: 1.6;
+    max-width: 400px;
+    margin: 0 0 28px 0;
+}
+
+.auto-mode-features {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    background: #0d0d0d;
+    padding: 20px 24px;
+    border-radius: 12px;
+    border: 1px solid #2a2a2a;
+    width: 100%;
+    max-width: 400px;
+}
+
+.auto-mode-feature {
+    display: flex;
+    align-items: center;
+    text-align: left;
+    gap: 12px;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.feature-icon {
+    width: 20px;
+    height: 20px;
+    color: #43ff65;
+    flex-shrink: 0;
+}
+
+/* ===================================
    ФУТЕР С КНОПКАМИ
    =================================== */
 .settings-footer {
@@ -459,5 +616,27 @@
     .reset-btn {
         width: 100%;
         justify-content: center;
+    }
+
+    .auto-mode-widget {
+        min-height: auto;
+    }
+
+    .auto-mode-icon-container {
+        width: 100px;
+        height: 80px;
+    }
+
+    .auto-mode-icon {
+        width: 56px;
+        height: 56px;
+    }
+
+    .auto-mode-title {
+        font-size: 20px;
+    }
+
+    .auto-mode-description {
+        font-size: 14px;
     }
 }

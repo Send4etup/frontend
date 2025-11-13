@@ -706,6 +706,79 @@ export const transcribeAudioFile = async (audioFile, language = 'ru', prompt = n
     }
 };
 
+/**
+ * 🧠 Получение AI-анализа для автоматического подбора настроек
+ *
+ * @param {string} message - Сообщение пользователя для анализа
+ * @param {string} chatType - Тип чата (coding, brainstorm, exam_prep, etc.)
+ * @param {Object} currentSettings - Текущие настройки чата
+ * @param {string} systemPrompt - Системный промпт для контекста
+ * @param {string} chatID - ID чата
+ * @returns {Promise<Object|null>} Рекомендованные настройки от ИИ или null при ошибке
+ */
+export const getAIAnalysis = async (
+    message,
+    chatType,
+    currentSettings,
+    systemPrompt,
+    chatID
+) => {
+    try {
+        console.log('🧠 [AI Analysis] Запрос анализа настроек...', {
+            chatType,
+            messageLength: message.length,
+            currentSettings
+        });
+
+        const requestBody = {
+            message: message,
+            chat_id: chatID,
+            current_settings: currentSettings, // ← ВАЖНО!
+            context: {
+                tool_type: chatType,
+                agent_prompt: systemPrompt,
+            }
+        };
+
+        console.log('📤 [AI Analysis] Request body:', requestBody);
+
+        const response = await fetch(`${API_BASE_URL}/chat/generate-chat-settings`, {
+            method: 'POST',
+            headers: await getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.warn('⚠️ [AI Analysis] Ошибка запроса:', {
+                status: response.status,
+                error: errorData
+            });
+            return null;
+        }
+
+        const data = await response.json();
+
+        console.log('📝 [AI Analysis] Полный ответ:', data);
+
+        const settings = data.settings || data;
+
+        if (settings && Object.keys(settings).length > 0) {
+            console.log('✅ [AI Analysis] Настройки успешно получены:', settings);
+            return settings;
+        } else {
+            console.log('ℹ️ [AI Analysis] Изменений не требуется (пустой объект)');
+            return null;
+        }
+
+    } catch (error) {
+        console.error('❌ [AI Analysis] Ошибка:', error);
+        return null;
+    }
+};
+
+
 // ========================================
 // 📚 ТИПЫ ЧАТОВ И ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ========================================
@@ -746,6 +819,7 @@ export default {
     getAIResponseStream,
     savePartialAIResponse,
     getUserChats,
+    getAIAnalysis,
     getChatMessages,
     updateChatTitle,
     deleteChatById,

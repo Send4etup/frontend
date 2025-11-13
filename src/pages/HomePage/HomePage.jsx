@@ -11,30 +11,33 @@ import { getQuickActions, getAgentPrompt, getAgentByAction } from '../../utils/a
 import { getRandomQuote } from "./quotes.js";
 
 const VoiceRecordingVisualizer = ({ isRecording }) => {
-    const [bars, setBars] = useState(new Array(40).fill(0.1));
-    const animationRef = useRef(null);
+    // Массив палочек - храним только значения высоты
+    const [bars, setBars] = useState([]);
+    const intervalRef = useRef(null);
     const analyserRef = useRef(null);
     const audioContextRef = useRef(null);
     const sourceRef = useRef(null);
+    const dataArrayRef = useRef(null);
+
+    const MAX_BARS = 24; // Количество видимых палочек
+    const UPDATE_INTERVAL = 80; // Частота добавления новых палочек (мс)
 
     useEffect(() => {
         if (!isRecording) {
-            // Останавливаем визуализацию когда запись прекращена
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current);
+            // Останавливаем визуализацию
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
             }
             if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
                 audioContextRef.current.close();
             }
+            setBars([]);
             return;
         }
 
-        let dataArray;
-
-        // Инициализация Web Audio API для получения данных с микрофона
+        // Инициализация Web Audio API
         async function initAudio() {
             try {
-                // Запрашиваем доступ к микрофону
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
                         echoCancellation: true,
@@ -43,69 +46,79 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
                     }
                 });
 
-                // Создаем AudioContext для анализа звука
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const analyser = audioContext.createAnalyser();
                 const source = audioContext.createMediaStreamSource(stream);
 
-                // Настройки анализатора
-                analyser.fftSize = 128; // Размер FFT (влияет на детализацию)
-                analyser.smoothingTimeConstant = 0.7; // Плавность (0-1)
+                analyser.fftSize = 128;
+                analyser.smoothingTimeConstant = 0.7;
 
                 source.connect(analyser);
 
-                // Сохраняем ссылки
                 audioContextRef.current = audioContext;
                 analyserRef.current = analyser;
                 sourceRef.current = source;
+                dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
 
-                // Массив для хранения частотных данных
-                dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-                // Запускаем анимацию
-                animate();
+                startVisualization();
             } catch (error) {
                 console.error('Ошибка доступа к микрофону:', error);
-                // Если нет доступа к микрофону, показываем фейковую анимацию
-                animateFallback();
+                startVisualizationFallback();
             }
         }
 
-        // Функция анимации на основе реальных данных с микрофона
-        function animate() {
-            animationRef.current = requestAnimationFrame(animate);
+        // Получение высоты палочки на основе звука
+        function getBarHeight() {
+            if (!analyserRef.current || !dataArrayRef.current) {
+                return Math.random() * 0.6 + 0.2;
+            }
 
-            if (!analyserRef.current) return;
+            analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-            // Получаем частотные данные
-            analyserRef.current.getByteFrequencyData(dataArray);
+            const sum = dataArrayRef.current.reduce((acc, val) => acc + val, 0);
+            const average = sum / dataArrayRef.current.length;
+            const normalized = average / 255;
 
-            // Преобразуем данные в массив для палочек (берем 40 значений)
-            const newBars = Array.from({ length: 25 }, (_, i) => {
-                const index = Math.floor((i * dataArray.length) / 30);
-                // Нормализуем значения от 0 до 1 и добавляем минимальную высоту
-                const value = dataArray[index] / 255;
-                return Math.max(value, 0.1); // Минимум 0.1 для видимости
-            });
-
-            setBars(newBars);
+            return Math.max(normalized, 0.15);
         }
 
-        // Фолбэк анимация если нет доступа к микрофону
-        function animateFallback() {
-            animationRef.current = requestAnimationFrame(animateFallback);
+        // Запуск визуализации с реальными данными
+        function startVisualization() {
+            intervalRef.current = setInterval(() => {
+                const newHeight = getBarHeight();
 
-            setBars(prev =>
-                prev.map(() => Math.random() * 0.6 + 0.2)
-            );
+                setBars(prevBars => {
+                    const newBars = [...prevBars, newHeight];
+                    // Ограничиваем количество палочек
+                    if (newBars.length > MAX_BARS) {
+                        return newBars.slice(-MAX_BARS);
+                    }
+                    return newBars;
+                });
+            }, UPDATE_INTERVAL);
+        }
+
+        // Фолбэк с рандомными значениями
+        function startVisualizationFallback() {
+            intervalRef.current = setInterval(() => {
+                const newHeight = Math.random() * 0.6 + 0.2;
+
+                setBars(prevBars => {
+                    const newBars = [...prevBars, newHeight];
+                    if (newBars.length > MAX_BARS) {
+                        return newBars.slice(-MAX_BARS);
+                    }
+                    return newBars;
+                });
+            }, UPDATE_INTERVAL);
         }
 
         initAudio();
 
-        // Cleanup при размонтировании
+        // Cleanup
         return () => {
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current);
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
             }
             if (sourceRef.current && sourceRef.current.mediaStream) {
                 sourceRef.current.mediaStream.getTracks().forEach(track => track.stop());
@@ -118,19 +131,17 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
 
     return (
         <div className="voice-visualizer">
-            {bars.map((value, index) => (
-                <motion.div
-                    key={index}
-                    className="voice-bar"
-                    animate={{
-                        scaleY: value,
-                    }}
-                    transition={{
-                        duration: 0.1,
-                        ease: "easeOut"
-                    }}
-                />
-            ))}
+            <div className="voice-bars-container">
+                {bars.map((height, index) => (
+                    <div
+                        key={index}
+                        className="voice-bar"
+                        style={{
+                            transform: `scaleY(${height})`,
+                        }}
+                    />
+                ))}
+            </div>
         </div>
     );
 };
@@ -971,20 +982,41 @@ const HomePage = ({ user: currentUser }) => {
                 .voice-visualizer {
                     display: flex;
                     align-items: center;
-                    justify-content: center;
-                    gap: 3px;
+                    justify-content: flex-end;
                     height: 40px;
                     width: 100%;
-                    max-width: 600px;
+                    max-width: 800px;
+                    overflow: hidden;
+                    position: relative;
+                    z-index: 1000;
+                }
+
+                .voice-bars-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 3px;
+                    height: 100%;
+                    animation: slideLeft 0.08s linear infinite;
+                }
+
+                @keyframes slideLeft {
+                    from {
+                        transform: translateX(0);
+                    }
+                    to {
+                        transform: translateX(-7px);
+                    }
                 }
 
                 .voice-bar {
-                    width: 3px;
+                    width: 4px;
                     height: 100%;
                     background: #43ff65;
                     border-radius: 2px;
                     transform-origin: center;
                     opacity: 0.85;
+                    transition: transform 0.1s ease-out;
+                    flex-shrink: 0;
                 }
                 
                 .cancel-recording-btn,

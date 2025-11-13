@@ -153,7 +153,8 @@ export const SPECIFIC_SETTINGS = {
                 { value: 'cpp', label: 'C++' },
                 { value: 'csharp', label: 'C#' },
                 { value: 'go', label: 'Go' },
-                { value: 'rust', label: 'Rust' }
+                { value: 'rust', label: 'Rust' },
+                { value: 'php', label: 'PHP'}
             ]
         },
         {
