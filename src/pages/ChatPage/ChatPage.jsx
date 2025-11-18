@@ -429,7 +429,7 @@ const ChatPage = () => {
                     return;
                 }
 
-                await transcribeAudio(audioBlob);
+                await transcribeAudioQuery(audioBlob);
             };
 
             recorder.onerror = (event) => {
@@ -537,37 +537,20 @@ const ChatPage = () => {
         await startRecording();
     };
 
-    const transcribeAudio = async (audioBlob) => {
+    const transcribeAudioQuery = async (audioBlob) => {
         try {
             setIsLoading(true);
             setIsTranscribing(true);
 
-
-            // Создаем FormData для отправки
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'recording.webm');
-            formData.append('language', 'ru');  // Указываем язык явно
-
             // Добавляем контекстный промпт для улучшения точности
             const contextPrompt = "Это образовательный контент на русском языке о программировании, учебе и образовании.";
-            formData.append('prompt', contextPrompt);
 
-            // Отправляем на бэкенд
 
-            const response = await transcribeAudio(audioBlob)
+            // Отправляем на бэкенд через API-функцию из chatAPI.js
+            const result = await transcribeAudio(audioBlob, "ru", contextPrompt);
 
-            if (!response.ok) {
-                throw new Error(`Ошибка транскрибации: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (data.text) {
-                // ✅ Вставляем транскрибированный текст в поле ввода
-                setInputValue(data.text);
-                console.log('✅ Текст распознан:', data.text);
-            } else {
-                throw new Error('Текст не распознан');
+            if (result.success && result.text) {
+                setInputValue(result.text);
             }
 
         } catch (error) {
