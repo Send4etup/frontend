@@ -1,4 +1,5 @@
 /* src/pages/ChatPage/components/GeneratedImage.css */
+/* 🆕 ОБНОВЛЕНО: Добавлены стили для работы с оригиналами и сжатыми версиями */
 
 /* 🎨 КОНТЕЙНЕР ИЗОБРАЖЕНИЯ */
 .generated-image-container {
@@ -97,15 +98,46 @@
     box-shadow: 0 0 20px rgba(67, 255, 101, 0.4);
 }
 
-.overlay-btn.regenerate-btn {
+.overlay-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 🆕 Кнопка оригинала (PNG) */
+.overlay-btn.original-btn {
     background: rgba(87, 139, 246, 0.2);
     border-color: rgba(87, 139, 246, 0.4);
 }
 
-.overlay-btn.regenerate-btn:hover {
+.overlay-btn.original-btn:hover:not(:disabled) {
     background: rgba(87, 139, 246, 0.3);
     border-color: #578BF6;
     box-shadow: 0 0 20px rgba(87, 139, 246, 0.4);
+}
+
+.overlay-btn.regenerate-btn {
+    background: rgba(255, 165, 0, 0.2);
+    border-color: rgba(255, 165, 0, 0.4);
+}
+
+.overlay-btn.regenerate-btn:hover {
+    background: rgba(255, 165, 0, 0.3);
+    border-color: #ffa500;
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.4);
+}
+
+/* 🆕 Анимация вращения для загрузки */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* 🏷️ БЕЙДЖ "СОЗДАНО ИИ" */
@@ -127,6 +159,22 @@
     pointer-events: none;
 }
 
+/* 🆕 БЕЙДЖ СЖАТИЯ */
+.compression-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(255, 165, 0, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    border-radius: 20px;
+    padding: 6px 12px;
+    color: #ffa500;
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
 @keyframes sparkle {
     0%, 100% {
         opacity: 1;
@@ -136,6 +184,157 @@
         opacity: 0.7;
         transform: scale(1.1) rotate(180deg);
     }
+}
+
+/* 🆕 СЕКЦИЯ СКАЧИВАНИЯ С ДВУМЯ КНОПКАМИ */
+.download-section {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.download-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.download-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.download-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Кнопка сжатого (WebP) - зеленая */
+.download-button.compressed-btn {
+    background: linear-gradient(135deg, #43ff65 0%, #3dd956 100%);
+    color: #0d0d0d;
+    box-shadow: 0 4px 12px rgba(67, 255, 101, 0.2);
+}
+
+.download-button.compressed-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #3dd956 0%, #43ff65 100%);
+    box-shadow: 0 6px 16px rgba(67, 255, 101, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Кнопка оригинала (PNG) - синяя */
+.download-button.original-btn {
+    background: linear-gradient(135deg, #578BF6 0%, #4a7de6 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(87, 139, 246, 0.2);
+}
+
+.download-button.original-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4a7de6 0%, #578BF6 100%);
+    box-shadow: 0 6px 16px rgba(87, 139, 246, 0.3);
+    transform: translateY(-1px);
+}
+
+.download-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.download-button svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+.btn-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.btn-title {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.btn-subtitle {
+    font-size: 11px;
+    opacity: 0.8;
+    font-weight: 400;
+}
+
+/* 🆕 ИНФОРМАЦИЯ О СЖАТИИ */
+.compression-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    background: rgba(255, 165, 0, 0.05);
+    border: 1px solid rgba(255, 165, 0, 0.2);
+    border-radius: 8px;
+    color: #ffa500;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.compression-info:hover {
+    background: rgba(255, 165, 0, 0.1);
+    border-color: rgba(255, 165, 0, 0.3);
+}
+
+/* 🆕 ДЕТАЛЬНАЯ ИНФОРМАЦИЯ О СЖАТИИ */
+.compression-details {
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #333333;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.detail-label {
+    color: #999999;
+}
+
+.detail-value {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.detail-value.highlight {
+    color: #43ff65;
+}
+
+.detail-note {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid #333333;
+    color: #cccccc;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 /* 📝 ИНФОРМАЦИЯ О ПРОМПТЕ */
@@ -281,6 +480,10 @@
         max-height: 400px;
     }
 
+    .overlay-actions {
+        gap: 8px;
+    }
+
     .overlay-btn {
         width: 40px;
         height: 40px;
@@ -296,11 +499,81 @@
         padding: 4px 10px;
     }
 
+    .compression-badge {
+        font-size: 11px;
+        padding: 4px 10px;
+    }
+
     .prompt-text {
         font-size: 12px;
     }
 
     .image-skeleton {
         height: 300px;
+    }
+
+    .download-section {
+        padding: 10px;
+    }
+
+    /* Мобильная версия - кнопки друг под другом */
+    .download-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .download-button {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+
+    .download-button svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .btn-title {
+        font-size: 13px;
+    }
+
+    .btn-subtitle {
+        font-size: 10px;
+    }
+
+    .compression-info {
+        font-size: 11px;
+        padding: 6px;
+    }
+
+    .compression-details {
+        padding: 10px;
+    }
+
+    .detail-row {
+        font-size: 12px;
+    }
+
+    .detail-note {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .overlay-actions {
+        gap: 6px;
+    }
+
+    .overlay-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .overlay-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .download-button {
+        padding: 8px 12px;
+        font-size: 12px;
     }
 }

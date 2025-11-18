@@ -11,7 +11,7 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
     const sourceRef = useRef(null);
     const dataArrayRef = useRef(null);
 
-    const MAX_BARS = 30; // Количество видимых палочек
+    const MAX_BARS = 50; // Количество видимых палочек
     const UPDATE_INTERVAL = 100; // Частота добавления новых палочек (мс)
 
     useEffect(() => {
@@ -453,7 +453,6 @@ const ChatInput = ({
                     justify-content: flex-end;
                     height: 40px;
                     width: 100%;
-                    max-width: 600px;
                     overflow: hidden;
                     position: relative;
                 }
