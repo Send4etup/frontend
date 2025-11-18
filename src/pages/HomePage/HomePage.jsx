@@ -340,11 +340,7 @@ const HomePage = ({ user: currentUser }) => {
             setIsTranscribing(true);
             console.log('🎤 Начинаем транскрибацию через chatAPI...');
 
-            const result = await transcribeAudio(
-                audioBlob,
-                'ru',
-                "Ты общаешься со школьником или студентом. Если пусто - то пусто и оставь"
-            );
+            const result = await transcribeAudio(audioBlob);
 
             if (result.success && result.text) {
                 setInputValue(result.text);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Maximize2, Sparkles, RefreshCw, Image as ImageIcon, Info } from 'lucide-react';
 import './GeneratedImage.css';
-import { downloadOriginalImage, openOriginalImage } from '../../../services/chatAPI'; // Путь к твоему API файлу
+import { downloadOriginalImage } from '../../../services/chatAPI'; // Путь к твоему API файлу
 
 /**
  * 🆕 ОБНОВЛЕННЫЙ КОМПОНЕНТ: Поддержка сжатых и оригинальных изображений
