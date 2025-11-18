@@ -243,6 +243,8 @@ export const getAIResponseStream = async (
 
 /**
  * Генерация изображения через DALL-E с поддержкой анализа файлов
+ * 🆕 ОБНОВЛЕНО: Теперь возвращает compressed_url и original_url для сохраненных изображений
+ *
  * @param {string} chatId - ID чата
  * @param {string} prompt - Текстовый промпт для генерации
  * @param {string} agentPrompt - Системный промпт агента
@@ -290,13 +292,33 @@ export const generateImage = async (chatId, prompt, agentPrompt, context = {}, f
 
         if (result.success && result.image_url) {
             console.log('✅ Изображение сгенерировано:', result.image_url);
+
+            // 🆕 НОВАЯ ЛОГИКА: Извлекаем image_id из URL для получения оригинала
+            const imageId = extractImageId(result.image_url);
+
             return {
                 success: true,
                 data: {
-                    image_url: result.image_url,
+                    // 🆕 Сжатое изображение для отображения (быстрая загрузка)
+                    image_url: result.image_url, // WebP версия
+
+                    // 🆕 ID изображения для получения оригинала
+                    image_id: imageId,
+
+                    // 🆕 URL оригинала (полное качество PNG)
+                    original_url: imageId ? `${API_BASE_URL}/images/${imageId}/original` : null,
+
+                    // Остальные данные как раньше
                     revised_prompt: result.revised_prompt || null,
                     message: result.message || 'Изображение создано! 🎨',
-                    analysis: result.analysis || null // Анализ загруженных файлов
+                    analysis: result.analysis || null, // Анализ загруженных файлов
+
+                    // 🆕 Информация о сжатии (если есть в ответе)
+                    compression_ratio: result.compression_ratio || null,
+                    original_size_mb: result.file_size_original ?
+                        (result.file_size_original / (1024 * 1024)).toFixed(2) : null,
+                    compressed_size_mb: result.file_size_compressed ?
+                        (result.file_size_compressed / (1024 * 1024)).toFixed(2) : null
                 }
             };
         } else {
@@ -309,6 +331,51 @@ export const generateImage = async (chatId, prompt, agentPrompt, context = {}, f
             success: false,
             error: error.message || 'Не удалось сгенерировать изображение'
         };
+    }
+};
+
+/**
+ * 🆕 НОВАЯ ФУНКЦИЯ: Скачивание оригинала изображения
+ *
+ * @param {string} imageId - ID изображения
+ * @param {string} fileName - Имя файла для сохранения (опционально)
+ * @returns {Promise<boolean>} - Успешно ли скачано
+ */
+export const downloadOriginalImage = async (imageId, fileName = 'generated-image.png') => {
+    try {
+        console.log('⬇️ Скачивание оригинала:', imageId);
+
+        const response = await fetch(`${API_BASE_URL}/images/${imageId}/original`, {
+            method: 'GET',
+            headers: await getAuthHeaders(),
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Получаем blob
+        const blob = await response.blob();
+
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName || `generated_${imageId}.png`;
+        document.body.appendChild(a);
+        a.click();
+
+        // Очистка
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        console.log('✅ Оригинал скачан');
+        return true;
+
+    } catch (error) {
+        console.error('❌ Ошибка скачивания оригинала:', error);
+        return false;
     }
 };
 

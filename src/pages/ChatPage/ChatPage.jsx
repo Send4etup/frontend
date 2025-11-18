@@ -22,7 +22,7 @@ import {
     sendMessageWithFiles,
     getAIResponseStream,
     generateImage,
-    savePartialAIResponse
+    savePartialAIResponse, transcribeAudio
 } from "../../services/chatAPI.js";
 import {getWelcomeMessage} from "../../utils/aiAgentsUtils.js";
 import {
@@ -553,10 +553,8 @@ const ChatPage = () => {
             formData.append('prompt', contextPrompt);
 
             // Отправляем на бэкенд
-            const response = await fetch('http://localhost:3213/api/transcribe', {
-                method: 'POST',
-                body: formData
-            });
+
+            const response = await transcribeAudio(audioBlob)
 
             if (!response.ok) {
                 throw new Error(`Ошибка транскрибации: ${response.status}`);

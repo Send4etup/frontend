@@ -77,26 +77,26 @@ const ConnectionStatus = ({ isOnline, isLoading }) => {
     }, [isOnline, isLoading]);
 
     // Показываем ошибку подключения
-    if (!isOnline && !isLoading) {
-        return (
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                background: 'linear-gradient(90deg, #ef4444, #dc2626)',
-                color: '#fff',
-                padding: '6px 12px',
-                fontSize: '13px',
-                fontWeight: '500',
-                zIndex: 9999,
-                textAlign: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-                ⚠️ Сервер недоступен - работаем в автономном режиме
-            </div>
-        );
-    }
+    // if (!isOnline && !isLoading) {
+    //     return (
+    //         <div style={{
+    //             position: 'fixed',
+    //             top: 0,
+    //             left: 0,
+    //             right: 0,
+    //             background: 'linear-gradient(90deg, #ef4444, #dc2626)',
+    //             color: '#fff',
+    //             padding: '6px 12px',
+    //             fontSize: '13px',
+    //             fontWeight: '500',
+    //             zIndex: 9999,
+    //             textAlign: 'center',
+    //             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    //         }}>
+    //             ⚠️ Сервер недоступен - работаем в автономном режиме
+    //         </div>
+    //     );
+    // }
 
     // Показываем успешное подключение
     // if (isOnline && showSuccess) {
