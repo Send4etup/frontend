@@ -4,8 +4,8 @@
  * API функции для работы с чатами ТоварищБота
  */
 
-// const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://back.grigpe3j.beget.tech/api';
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://back.grigpe3j.beget.tech/api';
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3213/api';
 
 /**
  * Получение заголовков для запросов с авторизацией
