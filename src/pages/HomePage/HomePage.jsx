@@ -10,23 +10,27 @@ import RecentChats from "../../components/RecentChats/RecentChats.jsx";
 import { getQuickActions, getAgentPrompt, getAgentByAction } from '../../utils/aiAgentsUtils.js';
 import { getRandomQuote } from "./quotes.js";
 
+
 const VoiceRecordingVisualizer = ({ isRecording }) => {
-    // Массив палочек - храним только значения высоты
     const [bars, setBars] = useState([]);
     const intervalRef = useRef(null);
     const analyserRef = useRef(null);
     const audioContextRef = useRef(null);
     const sourceRef = useRef(null);
     const dataArrayRef = useRef(null);
+    const animationFrameRef = useRef(null);
 
-    const MAX_BARS = 24; // Количество видимых палочек
-    const UPDATE_INTERVAL = 80; // Частота добавления новых палочек (мс)
+    const MAX_BARS = 80; // ✅ Уменьшено для более плавной работы
+    const UPDATE_INTERVAL = 80; // ✅ Увеличена частота обновления (было 100)
 
     useEffect(() => {
         if (!isRecording) {
             // Останавливаем визуализацию
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
+            }
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
             }
             if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
                 audioContextRef.current.close();
@@ -50,8 +54,9 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
                 const analyser = audioContext.createAnalyser();
                 const source = audioContext.createMediaStreamSource(stream);
 
-                analyser.fftSize = 128;
-                analyser.smoothingTimeConstant = 0.7;
+                // ✅ УЛУЧШЕНО: Больше деталей и быстрее реакция
+                analyser.fftSize = 128; // ✅ Было 128, стало 512 - больше деталей
+                analyser.smoothingTimeConstant = 0.6; // ✅ Было 0.7, стало 0.3 - быстрее реакция
 
                 source.connect(analyser);
 
@@ -67,7 +72,7 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
             }
         }
 
-        // Получение высоты палочки на основе звука
+        // ✅ УЛУЧШЕННЫЙ алгоритм расчета высоты палочки
         function getBarHeight() {
             if (!analyserRef.current || !dataArrayRef.current) {
                 return Math.random() * 0.6 + 0.2;
@@ -75,10 +80,23 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
 
             analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-            const sum = dataArrayRef.current.reduce((acc, val) => acc + val, 0);
-            const average = sum / dataArrayRef.current.length;
-            const normalized = average / 255;
+            // ✅ Используем средние частоты (более чувствительные к голосу)
+            const midFreqStart = Math.floor(dataArrayRef.current.length * 0.2);
+            const midFreqEnd = Math.floor(dataArrayRef.current.length * 0.6);
 
+            // ✅ Берем пиковые значения вместо среднего
+            let maxValue = 0;
+            for (let i = midFreqStart; i < midFreqEnd; i++) {
+                if (dataArrayRef.current[i] > maxValue) {
+                    maxValue = dataArrayRef.current[i];
+                }
+            }
+
+            // ✅ Нормализация с усилением
+            let normalized = (maxValue / 255) * 1.5; // Усиление в 1.5 раза
+            normalized = Math.min(normalized, 1); // Ограничиваем максимум
+
+            // ✅ Минимальная высота для визуальной активности
             return Math.max(normalized, 0.15);
         }
 
@@ -101,7 +119,7 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
         // Фолбэк с рандомными значениями
         function startVisualizationFallback() {
             intervalRef.current = setInterval(() => {
-                const newHeight = Math.random() * 0.6 + 0.2;
+                const newHeight = Math.random() * 0.7 + 0.3;
 
                 setBars(prevBars => {
                     const newBars = [...prevBars, newHeight];
@@ -120,6 +138,9 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
             if (sourceRef.current && sourceRef.current.mediaStream) {
                 sourceRef.current.mediaStream.getTracks().forEach(track => track.stop());
             }
@@ -133,11 +154,25 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
         <div className="voice-visualizer">
             <div className="voice-bars-container">
                 {bars.map((height, index) => (
-                    <div
-                        key={index}
+                    // ✅ ДОБАВЛЕНО: Плавная анимация появления с Framer Motion
+                    <motion.div
+                        key={`bar-${index}-${Date.now()}`}
                         className="voice-bar"
-                        style={{
-                            transform: `scaleY(${height})`,
+                        initial={{
+                            scaleX: 0.5,
+                            scaleY: height
+                        }}
+                        animate={{
+                            scaleX: 0.5,
+                            scaleY: height
+                        }}
+                        // exit={{
+                        //     opacity: 0,
+                        //     scaleX: 0
+                        // }}
+                        transition={{
+                            scaleX: { duration: 0.2, ease: "easeOut" },
+                            scaleY: { duration: 0.2, ease: "easeOut" }
                         }}
                     />
                 ))}
@@ -340,11 +375,7 @@ const HomePage = ({ user: currentUser }) => {
             setIsTranscribing(true);
             console.log('🎤 Начинаем транскрибацию через chatAPI...');
 
-            const result = await transcribeAudio(
-                audioBlob,
-                'ru',
-                "Ты общаешься со школьником или студентом. Если пусто - то пусто и оставь"
-            );
+            const result = await transcribeAudio(audioBlob);
 
             if (result.success && result.text) {
                 setInputValue(result.text);
@@ -969,14 +1000,15 @@ const HomePage = ({ user: currentUser }) => {
                     }
                 }
                 
-                /* Визуализатор записи голоса */
+                /* ✅ УЛУЧШЕННЫЙ визуализатор записи голоса */
                 .recording-visualizer-container {
                     flex: 1;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     padding: 8px;
-                    height: 30px;
+                    height: 40px;
+                    overflow: hidden;
                 }
 
                 .voice-visualizer {
@@ -985,38 +1017,26 @@ const HomePage = ({ user: currentUser }) => {
                     justify-content: flex-end;
                     height: 40px;
                     width: 100%;
-                    max-width: 800px;
-                    overflow: hidden;
                     position: relative;
-                    z-index: 1000;
+                    overflow: hidden; /* ✅ Важно для обрезки */
                 }
 
                 .voice-bars-container {
                     display: flex;
                     align-items: center;
-                    gap: 3px;
+                    gap: 1px; /* ✅ УМЕНЬШЕНО: было 3px, стало 2px */
                     height: 100%;
-                    animation: slideLeft 0.08s linear infinite;
-                }
-
-                @keyframes slideLeft {
-                    from {
-                        transform: translateX(0);
-                    }
-                    to {
-                        transform: translateX(-7px);
-                    }
+                    /* ✅ УБРАНО: animation slideLeft - больше не нужна */
                 }
 
                 .voice-bar {
-                    width: 4px;
+                    width: 6px; /* ✅ УМЕНЬШЕНО: было 3px, стало 2px - тоньше палочки */
                     height: 100%;
-                    background: #43ff65;
-                    border-radius: 2px;
+                    background: #3de558;
+                    border-radius: 3px;
                     transform-origin: center;
-                    opacity: 0.85;
-                    transition: transform 0.1s ease-out;
                     flex-shrink: 0;
+                    /* ✅ Плавная анимация высоты теперь через Framer Motion */
                 }
                 
                 .cancel-recording-btn,
