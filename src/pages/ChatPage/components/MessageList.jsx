@@ -5,6 +5,7 @@ import MessageFile from './MessageFile';
 import MessageFormatter from './MessageFormatter';
 import MessageStatus from './MessageStatus.jsx';
 import './MessageStatus.css';
+import AIStatusIndicator from "../../../components/AIStatusIndicator/AIStatusIndicator.jsx";
 
 const MessageList = ({
                          messages,
@@ -95,15 +96,11 @@ const MessageList = ({
                                 </>
                             )}
 
-                            {/* Индикатор стриминга */}
-                            {message.isStreaming && (
-                                <div className="streaming-indicator">
-                                    <div className="streaming-dots">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                    </div>
-                                </div>
+                            {message.processingStatus?.isActive && (
+                                <AIStatusIndicator
+                                    status={message.processingStatus.type}
+                                    customText={message.processingStatus.text}
+                                />
                             )}
                         </div>
 

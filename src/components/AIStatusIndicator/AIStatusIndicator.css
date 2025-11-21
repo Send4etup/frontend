@@ -1,0 +1,162 @@
+/* AIStatusIndicator.css */
+
+/* Основной контейнер индикатора */
+.ai-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    background: rgba(42, 42, 42, 0.6);
+    border-radius: 16px;
+    border: 1px solid rgba(67, 255, 101, 0.15);
+    backdrop-filter: blur(10px);
+    margin: 8px 0;
+    max-width: fit-content;
+    box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.2),
+            0 0 20px rgba(67, 255, 101, 0.05);
+    transition: all 0.3s ease;
+}
+
+.ai-status-indicator:hover {
+    border-color: rgba(67, 255, 101, 0.25);
+    box-shadow:
+            0 4px 16px rgba(0, 0, 0, 0.3),
+            0 0 30px rgba(67, 255, 101, 0.1);
+}
+
+/* Контейнер для точек */
+.ai-status-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 20px;
+}
+
+/* Отдельная точка */
+.ai-status-dot {
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, #43ff65, #32cd50);
+    border-radius: 50%;
+    box-shadow:
+            0 0 10px rgba(67, 255, 101, 0.4),
+            0 0 20px rgba(67, 255, 101, 0.2);
+    animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+/* Задержки для волнового эффекта */
+.ai-status-dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.ai-status-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.ai-status-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+/* Анимация пульсации точек */
+@keyframes dotPulse {
+    0%, 100% {
+        transform: scale(0.8);
+        opacity: 0.4;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+/* Текст статуса */
+.ai-status-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    user-select: none;
+}
+
+/* Анимация мерцания текста (опционально) */
+.ai-status-text {
+    animation: textFade 2s ease-in-out infinite;
+}
+
+@keyframes textFade {
+    0%, 100% {
+        opacity: 0.9;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .ai-status-indicator {
+        padding: 10px 14px;
+        gap: 10px;
+    }
+
+    .ai-status-text {
+        font-size: 13px;
+    }
+
+    .ai-status-dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .ai-status-dots {
+        gap: 5px;
+    }
+}
+
+/* Темная тема (если нужно) */
+@media (prefers-color-scheme: dark) {
+    .ai-status-indicator {
+        background: rgba(42, 42, 42, 0.8);
+        border-color: rgba(67, 255, 101, 0.2);
+    }
+}
+
+/* Состояние для разных типов статусов (опционально) */
+.ai-status-indicator[data-status="analyzing_files"] .ai-status-dot {
+    background: linear-gradient(135deg, #578BF6, #4070d8);
+    box-shadow:
+            0 0 10px rgba(87, 139, 246, 0.4),
+            0 0 20px rgba(87, 139, 246, 0.2);
+}
+
+.ai-status-indicator[data-status="generating_image"] .ai-status-dot {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    box-shadow:
+            0 0 10px rgba(255, 107, 107, 0.4),
+            0 0 20px rgba(255, 107, 107, 0.2);
+}
+
+.ai-status-indicator[data-status="transcribing"] .ai-status-dot {
+    background: linear-gradient(135deg, #ffd93d, #f5c518);
+    box-shadow:
+            0 0 10px rgba(255, 217, 61, 0.4),
+            0 0 20px rgba(255, 217, 61, 0.2);
+}
+
+/* Эффект появления */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.ai-status-indicator {
+    animation: slideUp 0.3s ease-out;
+}

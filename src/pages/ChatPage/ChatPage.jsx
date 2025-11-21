@@ -13,6 +13,7 @@ import ImageModal from './components/ImageModal';
 import ChatSettings from './components/ChatSettings/ChatSettings';
 import {getDefaultSettings, getSettingsForChatType} from './components/ChatSettings/settingsConfig';
 import getAutoSettings from '../../utils/autoSettingsEngine.js';
+import AIStatusIndicator from '../../components/AIStatusIndicator/AIStatusIndicator';
 
 // Utils & Services
 import {pageTransition, itemAnimation} from '../../utils/animations';
@@ -30,6 +31,13 @@ import {
     hasGrantedPermissionBefore,
     checkPermissionStatus
 } from '../../utils/microphonePermission';
+import {
+    PROCESSING_STATUS,
+    createStatusObject,
+    updateMessageStatus,
+    clearMessageStatus,
+    determineStatus
+} from '../../utils/statusUtils';
 
 // Styles
 import './ChatPage.css';
@@ -775,7 +783,8 @@ const ChatPage = () => {
                         role: 'assistant',
                         content: '',
                         timestamp: new Date(),
-                        isStreaming: true
+                        isStreaming: true,
+                        processingStatus: createStatusObject(PROCESSING_STATUS.PREPARING)
                     };
 
                     setMessages(prev => [...prev, botMessage]);
@@ -784,6 +793,12 @@ const ChatPage = () => {
                     // Создаём AbortController для этого запроса
                     const controller = new AbortController();
                     streamingControllerRef.current = controller;
+
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === botMessageId
+                            ? updateMessageStatus(msg, PROCESSING_STATUS.GENERATING_TEXT)
+                            : msg
+                    ))
 
                     try {
                         // Получаем streaming ответ от ИИ
@@ -807,10 +822,17 @@ const ChatPage = () => {
                             controller
                         );
 
+
                         // Завершаем streaming
                         setMessages(prev => prev.map(msg =>
                             msg.id === botMessageId
-                                ? {...msg, isStreaming: false}
+                                ? clearMessageStatus(msg)
+                                : msg
+                        ));
+
+                        setMessages(prev => prev.map(msg =>
+                            msg.id === botMessageId
+                                ? clearMessageStatus(msg)
                                 : msg
                         ));
 
