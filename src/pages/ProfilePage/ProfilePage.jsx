@@ -166,7 +166,7 @@ const ProfilePage = () => {
     if (isEditing) {
         return (
             <motion.div
-                className="profile-edit-page"
+                className="home-page"
                 variants={pageTransition}
                 initial="initial"
                 animate="animate"
@@ -271,7 +271,7 @@ const ProfilePage = () => {
 
     return (
         <motion.div
-            className="school-page"
+            className="home-page"
             variants={pageTransition}
             initial="initial"
             animate="animate"
