@@ -152,7 +152,7 @@ const SchoolPage = ({ user }) => {
             {/*    onRemove={removeNotification}*/}
             {/*/>*/}
             <motion.div
-                className="school-page"
+                className="home-page"
                 initial={{opacity: 0, y: 20}}
                 animate={{opacity: 1, y: 0}}
                 exit={{opacity: 0, y: -20}}

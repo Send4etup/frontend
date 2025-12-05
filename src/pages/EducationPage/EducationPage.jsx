@@ -157,7 +157,7 @@ const EducationPage = () => {
 
     return (
         <motion.div
-            className="school-page"
+            className="home-page"
             variants={pageTransition}
             initial="initial"
             animate="animate"
