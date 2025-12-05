@@ -293,32 +293,17 @@ export const generateImage = async (chatId, prompt, agentPrompt, context = {}, f
         if (result.success && result.image_url) {
             console.log('✅ Изображение сгенерировано:', result.image_url);
 
-            // 🆕 НОВАЯ ЛОГИКА: Извлекаем image_id из URL для получения оригинала
-            const imageId = extractImageId(result.image_url);
-
             return {
                 success: true,
                 data: {
-                    // 🆕 Сжатое изображение для отображения (быстрая загрузка)
-                    image_url: result.image_url, // WebP версия
-
-                    // 🆕 ID изображения для получения оригинала
-                    image_id: imageId,
-
-                    // 🆕 URL оригинала (полное качество PNG)
-                    original_url: imageId ? `${API_BASE_URL}/images/${imageId}/original` : null,
-
-                    // Остальные данные как раньше
+                    image_url: result.image_url,
+                    image_id: result.attachment_id || null,
+                    original_url: result.attachment_id
+                        ? `${API_BASE_URL}/images/${result.attachment_id}/original`
+                        : null,
                     revised_prompt: result.revised_prompt || null,
-                    message: result.message || 'Изображение создано! 🎨',
-                    analysis: result.analysis || null, // Анализ загруженных файлов
-
-                    // 🆕 Информация о сжатии (если есть в ответе)
-                    compression_ratio: result.compression_ratio || null,
-                    original_size_mb: result.file_size_original ?
-                        (result.file_size_original / (1024 * 1024)).toFixed(2) : null,
-                    compressed_size_mb: result.file_size_compressed ?
-                        (result.file_size_compressed / (1024 * 1024)).toFixed(2) : null
+                    message: result.message || 'Изображение создано',
+                    analysis: result.analysis || null
                 }
             };
         } else {

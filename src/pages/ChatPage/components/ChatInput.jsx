@@ -2,26 +2,25 @@ import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Paperclip, Send, Mic, Check, X } from 'lucide-react';
 
-const VoiceRecordingVisualizer = ({ isRecording }) => {
+// ==========================================
+// ✅ ИСПРАВЛЕННЫЙ VoiceRecordingVisualizer
+// ==========================================
+const VoiceRecordingVisualizer = ({ isRecording, audioStream }) => {
     const [bars, setBars] = useState([]);
     const intervalRef = useRef(null);
     const analyserRef = useRef(null);
     const audioContextRef = useRef(null);
     const sourceRef = useRef(null);
     const dataArrayRef = useRef(null);
-    const animationFrameRef = useRef(null);
 
-    const MAX_BARS = 80; // ✅ Уменьшено для более плавной работы
-    const UPDATE_INTERVAL = 80; // ✅ Увеличена частота обновления (было 100)
+    const MAX_BARS = 80;
+    const UPDATE_INTERVAL = 80;
 
     useEffect(() => {
-        if (!isRecording) {
+        if (!isRecording || !audioStream) {
             // Останавливаем визуализацию
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
-            }
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
             }
             if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
                 audioContextRef.current.close();
@@ -30,24 +29,19 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
             return;
         }
 
-        // Инициализация Web Audio API
+        // ✅ КРИТИЧНО: Используем переданный stream вместо запроса нового
         async function initAudio() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }
-                });
+                console.log('🎨 Инициализация визуализации с переданным stream');
 
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const analyser = audioContext.createAnalyser();
-                const source = audioContext.createMediaStreamSource(stream);
 
-                // ✅ УЛУЧШЕНО: Больше деталей и быстрее реакция
-                analyser.fftSize = 128; // ✅ Было 128, стало 512 - больше деталей
-                analyser.smoothingTimeConstant = 0.6; // ✅ Было 0.7, стало 0.3 - быстрее реакция
+                // ✅ Используем переданный stream из props
+                const source = audioContext.createMediaStreamSource(audioStream);
+
+                analyser.fftSize = 128;
+                analyser.smoothingTimeConstant = 0.6;
 
                 source.connect(analyser);
 
@@ -58,12 +52,11 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
 
                 startVisualization();
             } catch (error) {
-                console.error('Ошибка доступа к микрофону:', error);
+                console.error('Ошибка инициализации визуализации:', error);
                 startVisualizationFallback();
             }
         }
 
-        // ✅ УЛУЧШЕННЫЙ алгоритм расчета высоты палочки
         function getBarHeight() {
             if (!analyserRef.current || !dataArrayRef.current) {
                 return Math.random() * 0.6 + 0.2;
@@ -71,11 +64,9 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
 
             analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-            // ✅ Используем средние частоты (более чувствительные к голосу)
             const midFreqStart = Math.floor(dataArrayRef.current.length * 0.2);
             const midFreqEnd = Math.floor(dataArrayRef.current.length * 0.6);
 
-            // ✅ Берем пиковые значения вместо среднего
             let maxValue = 0;
             for (let i = midFreqStart; i < midFreqEnd; i++) {
                 if (dataArrayRef.current[i] > maxValue) {
@@ -83,22 +74,18 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
                 }
             }
 
-            // ✅ Нормализация с усилением
-            let normalized = (maxValue / 255) * 1.5; // Усиление в 1.5 раза
-            normalized = Math.min(normalized, 1); // Ограничиваем максимум
+            let normalized = (maxValue / 255) * 1.5;
+            normalized = Math.min(normalized, 1);
 
-            // ✅ Минимальная высота для визуальной активности
             return Math.max(normalized, 0.15);
         }
 
-        // Запуск визуализации с реальными данными
         function startVisualization() {
             intervalRef.current = setInterval(() => {
                 const newHeight = getBarHeight();
 
                 setBars(prevBars => {
                     const newBars = [...prevBars, newHeight];
-                    // Ограничиваем количество палочек
                     if (newBars.length > MAX_BARS) {
                         return newBars.slice(-MAX_BARS);
                     }
@@ -107,7 +94,6 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
             }, UPDATE_INTERVAL);
         }
 
-        // Фолбэк с рандомными значениями
         function startVisualizationFallback() {
             intervalRef.current = setInterval(() => {
                 const newHeight = Math.random() * 0.7 + 0.3;
@@ -129,23 +115,19 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
-            if (sourceRef.current && sourceRef.current.mediaStream) {
-                sourceRef.current.mediaStream.getTracks().forEach(track => track.stop());
-            }
+
+            // ✅ НЕ останавливаем треки stream - они управляются в ChatPage
+
             if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
                 audioContextRef.current.close();
             }
         };
-    }, [isRecording]);
+    }, [isRecording, audioStream]); // ✅ Добавили audioStream в зависимости
 
     return (
         <div className="voice-visualizer">
             <div className="voice-bars-container">
                 {bars.map((height, index) => (
-                    // ✅ ДОБАВЛЕНО: Плавная анимация появления с Framer Motion
                     <motion.div
                         key={`bar-${index}-${Date.now()}`}
                         className="voice-bar"
@@ -157,10 +139,6 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
                             scaleX: 0.5,
                             scaleY: height
                         }}
-                        // exit={{
-                        //     opacity: 0,
-                        //     scaleX: 0
-                        // }}
                         transition={{
                             scaleX: { duration: 0.2, ease: "easeOut" },
                             scaleY: { duration: 0.2, ease: "easeOut" }
@@ -172,6 +150,9 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
     );
 };
 
+// ==========================================
+// ✅ ИСПРАВЛЕННЫЙ ChatInput с audioStream
+// ==========================================
 const ChatInput = ({
                        inputValue,
                        setInputValue,
@@ -181,6 +162,7 @@ const ChatInput = ({
                        isRecording,
                        isTranscribing,
                        streamingMessageId,
+                       audioStream,  // ✅ ДОБАВИЛИ НОВЫЙ PROP
                        onSendMessage,
                        onToggleAttachment,
                        onToggleRecording,
@@ -196,7 +178,6 @@ const ChatInput = ({
     const hasContent = inputValue.trim() || attachedFiles.length > 0;
     const textareaRef = useRef(null);
 
-    // Автофокус при начале печати
     useEffect(() => {
         const handleGlobalKeyDown = (e) => {
             if (e.ctrlKey || e.metaKey || e.altKey || e.key === 'Escape' || e.key === 'Tab') {
@@ -222,87 +203,89 @@ const ChatInput = ({
         if (isRecording) return "Запись...";
         if (isTranscribing) return "Расшифровка...";
         if (attachedFiles.length > 0) return "Добавьте описание к файлам...";
-        return "Сообщение";
+        return "";
     };
 
     const handleKeyDown = (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            return;
-        }
+        if (e.key === 'Enter') {
+            if (e.shiftKey) {
+                return;
+            }
 
-        if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
             e.preventDefault();
-            onSendMessage();
+            if (!isLoading && !streamingMessageId && hasContent) {
+                onSendMessage();
+            }
         }
-    };
-
-    // Автоматическое изменение высоты textarea с учетом скролла
-    const handleInput = (e) => {
-        const textarea = e.target;
-        // Убираем автоматическое изменение высоты - фиксируем размер
     };
 
     return (
         <motion.div
             className="chat-input-container"
-            onDragEnter={onDragEnter}
-            onDragLeave={onDragLeave}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
+            initial={{y: 50, opacity: 0}}
+            animate={{y: 0, opacity: 1}}
+            transition={{duration: 0.3}}
         >
             <div
-                className={`chat-input-wrapper ${isDragOver ? 'drag-over' : ''} ${isRecording ? 'recording' : ''}`}
+                className={`chat-input-wrapper ${isRecording ? 'recording' : ''} ${isDragOver ? 'drag-over' : ''}`}
+                onDragEnter={onDragEnter}
+                onDragLeave={onDragLeave}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
             >
                 <AnimatePresence>
                     {isDragOver && (
                         <motion.div
                             className="drag-drop-overlay"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
                         >
                             <div className="drag-drop-content">
-                                <Paperclip size={32} />
-                                <span>Отпустите для загрузки</span>
+                                <Paperclip size={24}/>
+                                <span>Отпустите файлы</span>
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {!isRecording && !streamingMessageId && (
-                    <motion.button
+                {!isRecording && (
+                    <button
+                        ref={attachmentButtonRef}
                         className="attachment-toggle-btn"
                         onClick={onToggleAttachment}
-                        ref={attachmentButtonRef}
                         disabled={isLoading || isTranscribing}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        title="Прикрепить файл"
                     >
-                        <Paperclip size={20} />
-                    </motion.button>
+                        <Paperclip size={20}/>
+                    </button>
                 )}
 
                 {isRecording ? (
                     <>
                         <div className="recording-visualizer-container">
-                            <VoiceRecordingVisualizer isRecording={isRecording} />
+                            {/* ✅ Передаем audioStream в визуализатор */}
+                            <VoiceRecordingVisualizer
+                                isRecording={isRecording}
+                                audioStream={audioStream}
+                            />
                         </div>
                         <div className="recording-controls">
                             <motion.button
                                 className="cancel-recording-btn"
                                 onClick={onCancelRecording}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{scale: 0.9}}
+                                title="Отменить запись"
                             >
-                                <X size={20} />
+                                <X size={20}/>
                             </motion.button>
                             <motion.button
                                 className="confirm-recording-btn"
                                 onClick={onConfirmRecording}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{scale: 0.9}}
+                                title="Отправить запись"
                             >
-                                <Check size={20} />
+                                <Check size={20}/>
                             </motion.button>
                         </div>
                     </>
@@ -312,52 +295,57 @@ const ChatInput = ({
                             ref={textareaRef}
                             className="chat-input"
                             value={inputValue}
-                            onChange={(e) => {
-                                setInputValue(e.target.value);
-                                handleInput(e);
-                            }}
+                            onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={getPlaceholder()}
                             disabled={isLoading || isTranscribing}
                             rows={1}
+                            style={{
+                                minHeight: '40px',
+                                maxHeight: '120px',
+                                resize: 'none',
+                                overflow: 'auto'
+                            }}
                         />
 
                         {streamingMessageId ? (
-                            <motion.button
+                            <button
                                 className="stop-generation-btn"
                                 onClick={onStopGeneration}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                title="Остановить генерацию"
                             >
-                                <X size={20} />
-                            </motion.button>
+                                <X size={20}/>
+                            </button>
                         ) : hasContent ? (
                             <motion.button
                                 className="send-btn"
                                 onClick={onSendMessage}
                                 disabled={isLoading || isTranscribing}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{scale: 0.95}}
+                                title="Отправить (Enter)"
                             >
-                                <Send size={20} />
+                                <Send size={20}/>
                             </motion.button>
                         ) : (
                             <motion.button
                                 className="voice-btn"
                                 onClick={onToggleRecording}
                                 disabled={isLoading || isTranscribing}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{scale: 0.95}}
+                                title="Записать голосовое сообщение"
                             >
-                                <Mic size={20} />
+                                <Mic size={20}/>
                             </motion.button>
                         )}
                     </>
                 )}
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .chat-input-container {
+                    position: sticky;
+                    bottom: 0;
+                    width: 100%;
                     padding: 12px 16px;
                     background: #0a0a0a;
                     border-top: 1px solid #1f1f1f;
@@ -423,7 +411,6 @@ const ChatInput = ({
                     color: #43ff65;
                 }
 
-                /* ✅ УЛУЧШЕННЫЙ визуализатор записи голоса */
                 .recording-visualizer-container {
                     flex: 1;
                     display: flex;
@@ -441,28 +428,25 @@ const ChatInput = ({
                     height: 40px;
                     width: 100%;
                     position: relative;
-                    overflow: hidden; /* ✅ Важно для обрезки */
+                    overflow: hidden;
                 }
 
                 .voice-bars-container {
                     display: flex;
                     align-items: center;
-                    gap: 1px; /* ✅ УМЕНЬШЕНО: было 3px, стало 2px */
+                    gap: 1px;
                     height: 100%;
-                    /* ✅ УБРАНО: animation slideLeft - больше не нужна */
                 }
 
                 .voice-bar {
-                    width: 6px; /* ✅ УМЕНЬШЕНО: было 3px, стало 2px - тоньше палочки */
+                    width: 6px;
                     height: 100%;
                     background: #3de558;
                     border-radius: 3px;
                     transform-origin: center;
                     flex-shrink: 0;
-                    /* ✅ Плавная анимация высоты теперь через Framer Motion */
                 }
 
-                /* Кнопки */
                 .attachment-toggle-btn,
                 .send-btn,
                 .voice-btn,
@@ -550,7 +534,6 @@ const ChatInput = ({
                     scrollbar-color: #43ff65 transparent;
                 }
 
-                /* Стилизация скроллбара для webkit браузеров */
                 .chat-input::-webkit-scrollbar {
                     width: 6px;
                 }
