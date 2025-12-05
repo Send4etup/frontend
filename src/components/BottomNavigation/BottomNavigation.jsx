@@ -1,18 +1,21 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, GraduationCap, BookOpen, User } from 'lucide-react';
 import './BottomNavigation.css';
+import HomeIcon from './Icons/Home';
+import CubeIcon from './Icons/Cube';
+import HumanIcon from './Icons/Human';
+import SchoolIcon from './Icons/School';
 
 const BottomNavigation = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
     const tabs = [
-        { id: 'home', path: '/home', label: 'home', icon: Home },
-        { id: 'school', path: '/school', label: 'school', icon: GraduationCap },
-        { id: 'education', path: '/education', label: 'education', icon: BookOpen },
-        { id: 'profile', path: '/profile', label: 'profile', icon: User }
+        { id: 'home', path: '/home', label: 'home', icon: HomeIcon },
+        { id: 'school', path: '/school', label: 'school', icon: SchoolIcon },
+        { id: 'education', path: '/education', label: 'education', icon: CubeIcon },
+        { id: 'profile', path: '/profile', label: 'profile', icon: HumanIcon }
     ];
 
     const handleTabClick = (path) => {
@@ -30,6 +33,7 @@ const BottomNavigation = () => {
                 {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = location.pathname === tab.path;
+                    const colorIcon = isActive ? "#7cfc56" : "#efffef";
 
                     return (
                         <motion.button
@@ -41,12 +45,12 @@ const BottomNavigation = () => {
                         >
                             <motion.div
                                 animate={{
-                                    scale: isActive ? 1.2 : 1,
+                                    scale: isActive ? 0.9 : 0.8,
                                     color: isActive ? '#7cfc56' : '#efffef'
                                 }}
                                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             >
-                                <Icon className="nav-icon" />
+                                <Icon className="nav-icon" color={colorIcon} />
                             </motion.div>
                             {/*<motion.span className="nav-label"*/}
                             {/*      animate={{*/}

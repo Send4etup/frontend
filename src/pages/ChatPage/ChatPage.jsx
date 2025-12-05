@@ -71,10 +71,12 @@ const ChatPage = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [chatSettings, setChatSettings] = useState(null);
     const [shouldSendMessage, setShouldSendMessage] = useState(false);
+    const [audioStream, setAudioStream] = useState(null);
 
     // Microphone permission
     const [permissionStatus, setPermissionStatus] = useState('checking');
     const [showPermissionHelp, setShowPermissionHelp] = useState(false);
+
 
     const [isAutoMode, setIsAutoMode] = useState(() => {
         const savedMode = localStorage.getItem(`chatSettings_${chatType}_mode`);
@@ -384,6 +386,8 @@ const ChatPage = () => {
                 }
             });
 
+            setAudioStream(stream);
+
             saveMicrophonePermission(true);
             setPermissionStatus('granted');
             setShowPermissionHelp(false);
@@ -419,6 +423,8 @@ const ChatPage = () => {
                     console.log('🔇 Трек остановлен');
                 });
 
+                setAudioStream(null);
+
                 // Проверяем, что есть данные
                 if (chunks.length === 0) {
                     console.error('❌ Нет данных для обработки');
@@ -443,6 +449,10 @@ const ChatPage = () => {
             recorder.onerror = (event) => {
                 console.error('❌ Ошибка MediaRecorder:', event.error);
                 setFileErrors(prev => [...prev, 'Ошибка записи. Попробуйте еще раз.']);
+
+
+                stream.getTracks().forEach(track => track.stop());
+                setAudioStream(null);
             };
 
             setMediaRecorder(recorder);
@@ -462,6 +472,7 @@ const ChatPage = () => {
         } catch (error) {
             console.error('❌ Ошибка доступа к микрофону:', error);
 
+            setAudioStream(null);
             saveMicrophonePermission(false);
 
             // Определяем тип ошибки и показываем понятное сообщение
@@ -511,6 +522,11 @@ const ChatPage = () => {
                     console.log('🔇 Трек микрофона остановлен');
                 });
             }
+        }
+
+        if (audioStream) {
+            audioStream.getTracks().forEach(track => track.stop());
+            setAudioStream(null);
         }
 
         // Сбрасываем состояния
@@ -666,21 +682,12 @@ const ChatPage = () => {
                     const generatingMessage = {
                         id: generatingMessageId,
                         role: 'assistant',
-                        content: fileIds.length > 0
-                            ? '🔍 Анализирую изображение и создаю новое...'
-                            : '🎨 Генерирую изображение...',
-                        files: [{
-                            isGenerated: true,
-                            isGenerating: true,
-                            original_prompt: text,
-                            type: 'image/png',
-                        }],
                         timestamp: new Date().toISOString(),
+                        processingStatus: createStatusObject(PROCESSING_STATUS.GENERATING_IMAGE)
                     };
 
                     setMessages(prev => [...prev, generatingMessage]);
 
-                    // 3. ✅ ЗАПРОС НА ГЕНЕРАЦИЮ ЧЕРЕЗ chatAPI.js (с файлами если есть)
                     const imageResult = await generateImage(
                         chatId,
                         text || "Создай изображение на основе загруженных файлов",
@@ -689,7 +696,7 @@ const ChatPage = () => {
                             tool_type: chatType,
                             temperature: temperature
                         },
-                        fileIds // ✅ Передаём file_ids для анализа
+                        fileIds
                     );
 
                     // 4. Обрабатываем результат
@@ -709,24 +716,39 @@ const ChatPage = () => {
                             id: Date.now() + 2,
                             role: 'assistant',
                             content: messageContent,
-                            files: [{
-                                isGenerated: true,
-                                isGenerating: false,
-                                url: imageResult.data.image_url,
-                                revised_prompt: imageResult.data.revised_prompt,
-                                original_prompt: text,
-                                type: 'image/png',
-                                name: `generated-${Date.now()}.png`,
-                                size: 0,
-                            }],
-                            timestamp: new Date().toISOString(),
+                            files: [
+                                {
+                                    isGenerated: true,
+                                    isGenerating: false,
+
+                                    url: imageResult.data.image_url,
+
+                                    original_url: imageResult.data.original_url,
+
+                                    revised_prompt: imageResult.data.revised_prompt,
+                                    original_prompt: text,
+
+                                    type: imageResult.data.image_url.endsWith('.webp')
+                                        ? 'image/webp'
+                                        : 'image/png',
+
+                                    name: `generated-${Date.now()}.png`,
+                                    size: 0
+                                }
+                            ],
+                            timestamp: new Date().toISOString()
                         };
 
-                        // Удаляем placeholder и добавляем готовое изображение
                         setMessages(prev => {
                             const filtered = prev.filter(msg => msg.id !== generatingMessageId);
                             return [...filtered, imageMessage];
                         });
+
+                        setMessages(prev => prev.map(msg =>
+                            msg.id === generatingMessageId
+                                ? clearMessageStatus(msg)
+                                : msg
+                        ));
 
                     } else {
                         throw new Error(imageResult.error || 'Не удалось сгенерировать изображение');
@@ -738,6 +760,12 @@ const ChatPage = () => {
                     // Удаляем placeholder при ошибке
                     setMessages(prev => prev.filter(msg =>
                         !(msg.files && msg.files[0]?.isGenerating)
+                    ));
+
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === generatingMessageId
+                            ? clearMessageStatus(msg)
+                            : msg
                     ));
 
                     // Показываем сообщение об ошибке
@@ -811,12 +839,20 @@ const ChatPage = () => {
                                 temperature: temperature
                             },
                             (chunk) => {
-                                // Обновляем сообщение с каждым чанком
-                                setMessages(prev => prev.map(msg =>
-                                    msg.id === botMessageId
-                                        ? {...msg, content: msg.content + chunk}
-                                        : msg
-                                ));
+                                setMessages(prev => prev.map(msg => {
+                                    if (msg.id === botMessageId) {
+                                        const isFirstChunk = !msg.content;
+
+                                        return {
+                                            ...msg,
+                                            content: msg.content + chunk,
+                                            processingStatus: isFirstChunk
+                                                ? createStatusObject(PROCESSING_STATUS.STREAMING)
+                                                : msg.processingStatus
+                                        };
+                                    }
+                                    return msg;
+                                }));
                             },
                             [], // fileIds пусто для текстовых сообщений
                             controller
@@ -824,12 +860,6 @@ const ChatPage = () => {
 
 
                         // Завершаем streaming
-                        setMessages(prev => prev.map(msg =>
-                            msg.id === botMessageId
-                                ? clearMessageStatus(msg)
-                                : msg
-                        ));
-
                         setMessages(prev => prev.map(msg =>
                             msg.id === botMessageId
                                 ? clearMessageStatus(msg)
@@ -845,7 +875,7 @@ const ChatPage = () => {
                                     ? {
                                         ...msg,
                                         content: msg.content + '\n\n[Генерация остановлена]',
-                                        isStreaming: false
+                                        ...clearMessageStatus(msg)
                                     }
                                     : msg
                             ));
@@ -855,7 +885,7 @@ const ChatPage = () => {
                                     ? {
                                         ...msg,
                                         content: 'Ошибка получения ответа. Попробуйте ещё раз.',
-                                        isStreaming: false
+                                        ...clearMessageStatus(msg)
                                     }
                                     : msg
                             ));
@@ -866,8 +896,9 @@ const ChatPage = () => {
                     }
                 }
             }
-                // ============================================================
-                // 📎 СООБЩЕНИЯ С ФАЙЛАМИ
+
+            // ============================================================
+            // 📎 СООБЩЕНИЯ С ФАЙЛАМИ
             // ============================================================
             else {
                 const sendResult = await sendMessageWithFiles(
@@ -880,7 +911,6 @@ const ChatPage = () => {
                 if (sendResult.success) {
                     const res = sendResult.data;
 
-                    // Обновляем статус отправленного сообщения с файлами
                     setMessages(prev => prev.map(m => m.status === 'sending'
                         ? {
                             ...m,
@@ -898,7 +928,8 @@ const ChatPage = () => {
                         role: 'assistant',
                         content: '',
                         timestamp: new Date(),
-                        isStreaming: true
+                        isStreaming: true,
+                        processingStatus: createStatusObject(PROCESSING_STATUS.ANALYZING_FILES)
                     };
 
                     setMessages(prev => [...prev, botMessage]);
@@ -910,6 +941,12 @@ const ChatPage = () => {
                     const controller = new AbortController();
                     streamingControllerRef.current = controller;
 
+                    setMessages(prev => prev.map(msg =>
+                        msg.id === botMessageId
+                            ? updateMessageStatus(msg, PROCESSING_STATUS.GENERATING_TEXT)
+                            : msg
+                    ));
+
                     try {
                         await getAIResponseStream(
                             text || "Проанализируй текст, извлеченный до этого из файла/файлов:",
@@ -920,11 +957,20 @@ const ChatPage = () => {
                                 temperature: temperature
                             },
                             (chunk) => {
-                                setMessages(prev => prev.map(msg =>
-                                    msg.id === botMessageId
-                                        ? {...msg, content: msg.content + chunk}
-                                        : msg
-                                ));
+                                setMessages(prev => prev.map(msg => {
+                                    if (msg.id === botMessageId) {
+                                        const isFirstChunk = !msg.content;
+
+                                        return {
+                                            ...msg,
+                                            content: msg.content + chunk,
+                                            processingStatus: isFirstChunk
+                                                ? createStatusObject(PROCESSING_STATUS.STREAMING)
+                                                : msg.processingStatus
+                                        };
+                                    }
+                                    return msg;
+                                }));
                             },
                             fileIds,
                             controller
@@ -932,7 +978,7 @@ const ChatPage = () => {
 
                         setMessages(prev => prev.map(msg =>
                             msg.id === botMessageId
-                                ? {...msg, isStreaming: false}
+                                ? clearMessageStatus(msg)
                                 : msg
                         ));
 
@@ -945,7 +991,7 @@ const ChatPage = () => {
                                     ? {
                                         ...msg,
                                         content: msg.content + '\n\n[Генерация остановлена]',
-                                        isStreaming: false
+                                        ...clearMessageStatus(msg)
                                     }
                                     : msg
                             ));
@@ -955,7 +1001,7 @@ const ChatPage = () => {
                                     ? {
                                         ...msg,
                                         content: 'Ошибка получения ответа. Попробуйте ещё раз.',
-                                        isStreaming: false
+                                        ...clearMessageStatus(msg)
                                     }
                                     : msg
                             ));
@@ -1572,6 +1618,7 @@ const ChatPage = () => {
                 isRecording={isRecording}
                 streamingMessageId={streamingMessageId}
                 onSendMessage={handleSendMessage}
+                audioStream={audioStream}
                 onToggleAttachment={() => setAttachmentMenu(!attachmentMenu)}
                 onToggleRecording={toggleRecording}
                 onStopGeneration={handleStopGeneration}
