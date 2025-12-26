@@ -150,9 +150,6 @@ const VoiceRecordingVisualizer = ({ isRecording, audioStream }) => {
     );
 };
 
-// ==========================================
-// ✅ ИСПРАВЛЕННЫЙ ChatInput с audioStream
-// ==========================================
 const ChatInput = ({
                        inputValue,
                        setInputValue,
@@ -162,7 +159,7 @@ const ChatInput = ({
                        isRecording,
                        isTranscribing,
                        streamingMessageId,
-                       audioStream,  // ✅ ДОБАВИЛИ НОВЫЙ PROP
+                       audioStream,
                        onSendMessage,
                        onToggleAttachment,
                        onToggleRecording,

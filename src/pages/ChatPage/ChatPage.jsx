@@ -593,7 +593,6 @@ const ChatPage = () => {
         const temperature = chatSettings?.temperature || 0.7;
         const text = inputValue.trim();
 
-        // ✅ ОПРЕДЕЛЯЕМ: это запрос на генерацию изображения?
         const isImageGeneration = chatType === 'images' || chatType === 'image';
 
         try {
@@ -611,21 +610,30 @@ const ChatPage = () => {
             setAttachedFiles([]);
             setIsLoading(true);
 
+            const settingsMessageId = Date.now();
+            const settingsMessage = {
+                id: settingsMessageId,
+                role: 'assistant',
+                content: '',
+                timestamp: new Date().toISOString(),
+                processingStatus: createStatusObject(PROCESSING_STATUS.GENERATING_SETTINGS)
+            };
+
+            setMessages(prev => [...prev, settingsMessage]);
+
             const modifiedPrompt = await buildSystemPrompt();
 
-            // ============================================================
-            // 🎨 ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ (без файлов)
-            // ============================================================
+            setMessages(prev => prev.filter(msg => msg.id !== settingsMessageId));
+
             if (isImageGeneration) {
                 console.log('🎨 Starting image generation...');
 
                 try {
                     let fileIds = [];
 
-                    // 1. Если есть файлы - сначала отправляем их
                     if (attachedFiles.length > 0) {
                         console.log('📎 Отправляем файлы для анализа...');
-
+    
                         const sendResult = await sendMessageWithFiles(
                             text || "Проанализируй это изображение и создай новое на его основе",
                             attachedFiles,

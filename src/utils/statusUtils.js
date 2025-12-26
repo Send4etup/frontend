@@ -10,6 +10,8 @@ export const PROCESSING_STATUS = {
     // Начальные этапы
     PREPARING: 'preparing',                    // Получаю запрос
 
+    GENERATING_SETTINGS: 'generating_settings',
+
     // Работа с файлами
     ANALYZING_FILES: 'analyzing_files',        // Анализирую файлы
     UPLOADING_FILES: 'uploading_files',        // Загружаю файлы
@@ -35,6 +37,7 @@ export const PROCESSING_STATUS = {
  */
 export const STATUS_TEXTS = {
     [PROCESSING_STATUS.PREPARING]: 'Получаю запрос...',
+    [PROCESSING_STATUS.GENERATING_SETTINGS]: 'Генерирую настройки',
     [PROCESSING_STATUS.ANALYZING_FILES]: 'Анализирую файлы...',
     [PROCESSING_STATUS.UPLOADING_FILES]: 'Загружаю файлы...',
     [PROCESSING_STATUS.TRANSCRIBING]: 'Транскрибирую аудио...',
@@ -119,7 +122,8 @@ export const isActiveStatus = (status) => {
  */
 export const getStatusColorClass = (status) => {
     const colorMap = {
-        [PROCESSING_STATUS.ANALYZING_FILES]: 'blue',
+        [PROCESSING_STATUS.ANALYZING_IMAGE]: 'blue',
+        [PROCESSING_STATUS.GENERATING_SETTINGS]: 'blue',
         [PROCESSING_STATUS.UPLOADING_FILES]: 'blue',
         [PROCESSING_STATUS.ANALYZING_IMAGE]: 'blue',
         [PROCESSING_STATUS.TRANSCRIBING]: 'yellow',
