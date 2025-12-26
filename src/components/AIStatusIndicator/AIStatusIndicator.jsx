@@ -14,6 +14,7 @@ const AIStatusIndicator = ({ status = 'generating_text', customText = null }) =>
     // Маппинг статусов к отображаемым текстам
     const STATUS_TEXTS = {
         preparing: 'Получаю запрос...',
+        generating_settings: 'Генерирую настройки...',
         analyzing_files: 'Анализирую файлы...',
         transcribing: 'Транскрибирую аудио...',
         generating_image: 'Генерирую изображение...',
