@@ -1,0 +1,1316 @@
+/* ExamModePage.css - Стили для режима подготовки к ОГЭ/ЕГЭ */
+
+.exam-mode {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+}
+
+/* Заголовок режима экзамена */
+.exam-header {
+    background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.exam-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #43ff65 0%, #578BF6 100%);
+}
+
+.exam-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.exam-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+}
+
+.exam-settings-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.exam-settings-btn-icon {
+    transition: ease-in-out .3s;
+}
+
+.exam-settings-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+
+    .exam-settings-btn-icon {
+        transform: rotate(90deg);
+    }
+}
+
+.exam-countdown {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ef4444;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.exam-countdown-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* Вкладки режима экзамена */
+.exam-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: #2a2a2a;
+    border-radius: 12px;
+    padding: 4px;
+}
+
+.exam-tab {
+    flex: 1;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.exam-tab.active {
+    background: #0d0d0d;
+    color: #43ff65;
+}
+
+.exam-tab:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Мотивационный блок */
+.motivation-block {
+    background: linear-gradient(135deg, #1a4d2e 0%, #0d261a 100%);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.motivation-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.motivation-subtext {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 16px;
+}
+
+.motivation-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #43ff65;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    display: block;
+}
+
+/* Блок поддержки с ИИ */
+.support-block {
+    background: #2a2a2a;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.support-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-assistant {
+    background: #0d0d0d;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ai-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #43ff65 0%, #2ecc71 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ai-info {
+    flex: 1;
+}
+
+.ai-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+}
+
+.ai-status {
+    font-size: 12px;
+    color: #43ff65;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ai-status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #43ff65;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.ai-description {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.4;
+}
+
+.support-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.support-btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.support-btn.primary {
+    background: #43ff65;
+    color: #0d0d0d;
+}
+
+.support-btn.primary:hover {
+    background: #3ee65a;
+    transform: translateY(-2px);
+}
+
+.support-btn.secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.support-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Раздел заданий */
+.tasks-section {
+    margin-bottom: 20px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-subtitle {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.task-card {
+    background: #2a2a2a;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.task-card:hover {
+    border-color: #43ff65;
+    transform: translateX(4px);
+}
+
+.task-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.task-info {
+    flex: 1;
+}
+
+.task-title-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+}
+
+.task-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.task-subject {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.task-time {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.task-difficulty {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.difficulty-easy {
+    background: rgba(67, 255, 101, 0.15);
+    color: #43ff65;
+}
+
+.difficulty-medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.difficulty-hard {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+/* Прогресс недели */
+.week-progress {
+    background: #2a2a2a;
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.week-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.week-subtitle {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 16px;
+}
+
+.week-completion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.completion-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.completion-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #43ff65;
+}
+
+.week-progress-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.week-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #43ff65 0%, #2ecc71 100%);
+    border-radius: 4px;
+    transition: width 0.6s ease;
+}
+
+.week-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    overflow: hidden;
+}
+
+.day-item {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.day-item.completed {
+    background: rgba(67, 255, 101, 0.15);
+}
+
+.day-item.completed::after {
+    content: '✓';
+    position: absolute;
+    bottom: 6px;
+    color: #43ff65;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.day-item.today {
+    border: 2px solid #578BF6;
+}
+
+.day-item.future {
+    opacity: 0.4;
+}
+
+.day-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.day-number {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .exam-title {
+        font-size: 20px;
+    }
+
+    .motivation-stats {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+    }
+
+    .week-days {
+        gap: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .exam-header {
+        padding: 16px;
+    }
+
+    .support-actions {
+        grid-template-columns: 1fr;
+    }
+}
+/* ========== Модальное окно настроек экзамена ========== */
+
+.exam-settings-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: flex-end;
+    z-index: 10000;
+    padding: 0;
+}
+
+.exam-settings-content {
+    background: #1a1a1a;
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding-bottom: 24px;
+    scrollbar-width: none;
+}
+
+.exam-settings-header {
+    position: fixed;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+}
+
+.space {
+    height: 80px;
+}
+
+.settings-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.settings-close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.settings-close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.settings-section {
+    margin-bottom: 28px;
+}
+
+.settings-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-section-subtitle {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 12px;
+}
+
+/* Выбор типа экзамена */
+.exam-type-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.exam-type-btn {
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.exam-type-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.exam-type-btn.active {
+    background: rgba(67, 255, 101, 0.15);
+    border-color: #43ff65;
+    color: #43ff65;
+}
+
+/* Сетка предметов */
+.subjects-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.subject-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.subject-checkbox:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(67, 255, 101, 0.3);
+}
+
+.subject-checkbox.checked {
+    background: rgba(67, 255, 101, 0.1);
+    border-color: #43ff65;
+}
+
+.checkbox-box {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #43ff65;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+.subject-checkbox.checked .checkbox-box {
+    background: #43ff65;
+    border-color: #43ff65;
+    color: #0d0d0d;
+}
+
+.subject-name {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+.subject-checkbox.checked .subject-name {
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Целевые баллы */
+.target-scores {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.target-score-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+}
+
+.target-score-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+.target-score-input {
+    width: 80px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #43ff65;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.target-score-input::-webkit-outer-spin-button,
+.target-score-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.target-score-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #43ff65;
+}
+
+.target-score-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 400;
+}
+
+/* Кнопка настройки голосового режима */
+.voice-setup-btn {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.voice-setup-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+/* Кнопка сброса настроек */
+.reset-settings-btn {
+    width: 100%;
+    padding: 14px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    color: #ef4444;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+}
+
+.reset-settings-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Адаптивность для модального окна */
+@media (max-width: 480px) {
+    .exam-type-options {
+        gap: 8px;
+    }
+
+    .exam-type-btn {
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    .target-score-input {
+        width: 70px;
+    }
+}
+/* ============================================ */
+/* НОВЫЕ СТИЛИ ДЛЯ ВКЛАДОК                      */
+/* ============================================ */
+
+/* Категории заданий по предметам */
+.subject-categories {
+    margin-top: 24px;
+}
+
+.subject-category-card {
+    background: #2a2a2a;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.subject-category-card:hover {
+    background: #323232;
+    border-color: rgba(67, 255, 101, 0.3);
+    transform: translateY(-2px);
+}
+
+.subject-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.subject-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.subject-target-badge {
+    background: rgba(67, 255, 101, 0.1);
+    border: 1px solid rgba(67, 255, 101, 0.3);
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #43ff65;
+}
+
+.subject-card-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.subject-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.subject-stat .stat-number {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.subject-stat .stat-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.subject-progress-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.subject-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #43ff65 0%, #22c55e 100%);
+    border-radius: 3px;
+    transition: width 0.8s ease;
+}
+
+/* Empty state */
+.empty-state {
+    background: #2a2a2a;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.empty-text {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.empty-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: rgba(67, 255, 101, 0.1);
+    border: 1px solid rgba(67, 255, 101, 0.3);
+    border-radius: 8px;
+    color: #43ff65;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.empty-btn:hover {
+    background: rgba(67, 255, 101, 0.15);
+    border-color: rgba(67, 255, 101, 0.5);
+}
+
+/* Аналитика */
+.analytics-section {
+    background: #2a2a2a;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.analytics-section .section-header {
+    margin-bottom: 20px;
+}
+
+/* Степень подготовки */
+.subject-progress-item {
+    margin-bottom: 20px;
+}
+
+.subject-progress-item:last-child {
+    margin-bottom: 0;
+}
+
+.subject-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.subject-progress-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.subject-progress-percent {
+    font-size: 14px;
+    font-weight: 700;
+    color: #43ff65;
+}
+
+.subject-progress-bar-bg {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.subject-progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s ease;
+}
+
+/* Решенные задания - статистика */
+.tasks-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.task-stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.task-stat-card.highlighted {
+    background: rgba(67, 255, 101, 0.1);
+    border-color: rgba(67, 255, 101, 0.3);
+}
+
+.task-stat-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.task-stat-card.highlighted:hover {
+    background: rgba(67, 255, 101, 0.15);
+    border-color: rgba(67, 255, 101, 0.4);
+}
+
+.task-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.task-stat-card.highlighted .task-stat-value {
+    color: #43ff65;
+}
+
+.task-stat-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+}
+
+/* Качество выполнения */
+.quality-metrics {
+    margin-bottom: 20px;
+}
+
+.quality-metric {
+    margin-bottom: 20px;
+}
+
+.quality-metric:last-child {
+    margin-bottom: 0;
+}
+
+.quality-metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.quality-metric-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.quality-metric-percent {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.quality-bar-bg {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.quality-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s ease;
+}
+
+.quality-bar-fill.success {
+    background: linear-gradient(90deg, #43ff65 0%, #22c55e 100%);
+}
+
+.quality-bar-fill.warning {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+.quality-bar-fill.error {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.quality-metric-detail {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.quality-recommendation {
+    background: rgba(67, 255, 101, 0.05);
+    border: 1px solid rgba(67, 255, 101, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 20px;
+}
+
+.recommendation-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #43ff65;
+    margin: 0 0 8px 0;
+}
+
+.recommendation-text {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Адаптивность для новых компонентов */
+@media (max-width: 480px) {
+    .tasks-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .subject-card-stats {
+        gap: 12px;
+    }
+
+    .subject-stat .stat-number {
+        font-size: 16px;
+    }
+}
+
+
+/* =====================================================
+   LOADING И ERROR СОСТОЯНИЯ
+   ===================================================== */
+
+/* Loader анимация спиннера */
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+}
+
+.empty-state h3 {
+    color: #fff;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.empty-state p {
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.empty-state .primary-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #43ff65, #22c55e);
+    color: #0d0d0d;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.empty-state .primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(67, 255, 101, 0.3);
+}
+
+/* =====================================================
+   МОДАЛЬНОЕ ОКНО НАСТРОЕК - УЛУЧШЕНИЯ
+   ===================================================== */
+
+/* Действия в настройках */
+.settings-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.save-settings-btn {
+    flex: 1;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #43ff65, #22c55e);
+    color: #0d0d0d;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.save-settings-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(67, 255, 101, 0.3);
+}
+
+.save-settings-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.reset-settings-btn {
+    padding: 14px 20px;
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid #ef4444;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.reset-settings-btn:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.1);
+    transform: translateY(-2px);
+}
+
+.reset-settings-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* =====================================================
+   СТИЛИ ДЛЯ СЛОЖНОСТИ ЗАДАНИЙ
+   ===================================================== */
+
+.task-difficulty {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0d0d0d;
+}
+
+.task-difficulty.easy {
+    background-color: #43ff65;
+}
+
+.task-difficulty.medium {
+    background-color: #22c55e;
+}
+
+.task-difficulty.hard {
+    background-color: #f59e0b;
+}
+
+/* =====================================================
+   АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ
+   ===================================================== */
+
+@media (max-width: 768px) {
+    .settings-actions {
+        flex-direction: column;
+    }
+
+    .save-settings-btn,
+    .reset-settings-btn {
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   ДОПОЛНИТЕЛЬНЫЕ УЛУЧШЕНИЯ UI
+   ===================================================== */
+
+/* Плавные переходы для всех интерактивных элементов */
+.exam-settings-btn,
+.exam-tab,
+.quick-action-btn,
+.task-card,
+.subject-checkbox,
+.exam-type-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Улучшенные тени при наведении */
+.task-card:hover {
+    box-shadow: 0 8px 24px rgba(67, 255, 101, 0.15);
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(87, 139, 246, 0.2);
+}
+
+/* Индикатор загрузки для статистики */
+.stats-grid .spin {
+    margin: 20px auto;
+    display: block;
+}
+
+/* Бейдж в section-header */
+.section-badge {
+    padding: 4px 12px;
+    background: rgba(67, 255, 101, 0.1);
+    color: #43ff65;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Стили для календаря с данными о заданиях */
+.calendar-day.completed .day-number {
+    font-weight: 700;
+}
+
+.calendar-day .day-tasks {
+    font-size: 10px;
+    color: #999;
+    margin-top: 2px;
+}

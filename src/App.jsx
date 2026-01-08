@@ -27,6 +27,8 @@ import { useAuth } from "./hooks/useAuth.js";
 // Styles
 import './App.css';
 import ChatHistoryPage from "./pages/ChatHistoryPage/ChatHistoryPage.jsx";
+import ExamModePage from "./pages/ExamModePage/ExamModePage.jsx";
+import VoiceModePage from "./pages/VoiceModePage/VoiceModePage.jsx";
 
 // =====================================================
 // КОМПОНЕНТЫ ДЛЯ ОТОБРАЖЕНИЯ СОСТОЯНИЙ
@@ -299,16 +301,17 @@ function App() {
                 <AnimatePresence mode="wait">
                     <Routes>
                         <Route path="/" element={<Layout user={userWithMethods} />}>
-                            <Route index element={<Navigate to="/home" replace />} />
-
-                            {/* Все страницы получают авторизованного пользователя */}
+                            <Route
+                                index
+                                element={<Navigate to="/home" replace />}
+                            />
                             <Route
                                 path="home"
                                 element={<HomePage user={userWithMethods} />}
                             />
                             <Route
                                 path="school"
-                                element={<SchoolPage user={userWithMethods} />}
+                                element={<SchoolPage user={user.db} />}
                             />
                             <Route
                                 path="education"
@@ -322,14 +325,10 @@ function App() {
                                 path="ideas"
                                 element={<IdeasPage user={userWithMethods} />}
                             />
-
-                            {/* Страницы категорий образования */}
                             <Route
                                 path="videos"
                                 element={<VideosPage user={userWithMethods} />}
                             />
-
-                            {/* Страницы чатов и тестов */}
                             <Route
                                 path="test/:testId"
                                 element={<TestPage user={userWithMethods} />}
@@ -341,6 +340,14 @@ function App() {
                             <Route
                                 path="chats-history"
                                 element={<ChatHistoryPage user={user} />}
+                            />
+                            <Route
+                                path="exam-mode"
+                                element={<ExamModePage user={user.db} />}
+                            />
+                            <Route
+                                path="voice-mode"
+                                element={<VoiceModePage user={user} />}
                             />
                             <Route
                                 path="*"

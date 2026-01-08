@@ -1,26 +1,33 @@
-// src/pages/SchoolPage/SchoolPage.jsx - Обновленная версия с использованием JSON конфигурации
+// src/pages/SchoolPage/SchoolPage.jsx - Версия с поддержкой ОГЭ и ЕГЭ режимов
 
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { createChat } from "../../services/chatAPI.js";
 import './SchoolPage.css';
 import { useNotifications, NotificationContainer } from '../../components/Notification/Notification.jsx';
-
-// ✅ ИМПОРТИРУЕМ АГЕНТОВ ИЗ JSON
 import {getStudyTools, getAgentPrompt, getAgentByAction} from '../../utils/aiAgentsUtils.js';
+import ExamModePage from '../ExamModePage/ExamModePage.jsx';
+import {useUserProfile} from "../../services/userApi.js";
+import {useAuth} from "../../hooks/useAuth.js";
 
+/**
+ * Страница инструментов для учебы с поддержкой ОГЭ/ЕГЭ режимов
+ * @param {Object} user - Данные пользователя
+ */
 const SchoolPage = ({ user }) => {
+    const token = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('instruments');
     const [selectedSubject, setSelectedSubject] = useState('all');
     const [error, setError] = useState(null);
     const { notifications, removeNotification, showError } = useNotifications();
 
-    // ✅ ПОЛУЧАЕМ УЧЕБНЫЕ ИНСТРУМЕНТЫ ИЗ JSON
+    // Получаем учебные инструменты из JSON конфигурации
     const studyTools = getStudyTools();
 
+    // Список предметов для фильтрации тестов
     const subjects = [
         { id: 'all', name: 'Все' },
         { id: 'математика', name: 'Математика' },
@@ -31,55 +38,24 @@ const SchoolPage = ({ user }) => {
         { id: 'история', name: 'История' }
     ];
 
-    // const handleToolClick = async (tool) => {
-    //     try {
-    //         setError(null); // Добавить если есть состояние error
-    //
-    //         console.log('🎯 Creating tool chat:', tool.action);
-    //
-    //         // ✅ ПОЛУЧАЕМ ПРОМПТ ИЗ JSON КОНФИГУРАЦИИ
-    //         const agentPrompt = getAgentPrompt(tool.action);
-    //         console.log('Agent prompt for', tool.action, ':', agentPrompt);
-    //
-    //         // ✅ СОЗДАЕМ ЧАТ ЧЕРЕЗ API (как в HomePage)
-    //         const ChatCreateInfo = await createChat(tool.label, tool.action);
-    //
-    //         navigate(`/chat/${ChatCreateInfo.chat_id}`, {
-    //             state: {
-    //                 chatType: tool.action,
-    //                 toolConfig: tool,
-    //                 title: tool.label,
-    //                 agentPrompt: agentPrompt, // ✅ Передаем промпт в чат
-    //                 initialMessage: `Начинаем работу: ${tool.label}`
-    //             }
-    //         });
-    //
-    //     } catch (error) {
-    //         console.error('Failed to create tool chat:', error);
-    //         setError('Не удалось создать чат'); // Добавить если есть состояние error
-    //         // Fallback навигация
-    //         navigate(`/chat/demo_${tool.id}`);
-    //     }
-    // };
-
+    /**
+     * Обработчик клика по инструменту обучения
+     * Создает новый чат с соответствующим типом и промптом
+     */
     const handleToolClick = async (actionType) => {
         try {
-            setError(null); // Добавить если есть состояние error
+            setError(null);
 
             console.log('🎯 Creating tool chat:', actionType);
 
-            // ✅ НАХОДИМ КОНФИГУРАЦИЮ ДЕЙСТВИЯ В JSON
             const actionConfig = getAgentByAction(actionType);
             if (!actionConfig) return;
 
-            // ✅ ПОЛУЧАЕМ ПРОМПТ ИЗ JSON КОНФИГУРАЦИИ
             const agentPrompt = getAgentPrompt(actionType);
             console.log('Agent prompt for', actionType, ':', agentPrompt);
 
-            // ✅ СОЗДАЕМ ЧАТ ЧЕРЕЗ API (как в HomePage)
             const ChatCreateInfo = await createChat(actionConfig.label, actionType);
 
-            // ✅ ПРОВЕРЯЕМ УСПЕШНОСТЬ СОЗДАНИЯ ЧАТА
             if (!ChatCreateInfo.success) {
                 throw new Error(ChatCreateInfo.error || 'Не удалось создать чат');
             }
@@ -95,7 +71,7 @@ const SchoolPage = ({ user }) => {
         } catch (error) {
             console.error('Failed to create tool chat:', error);
 
-            // ✅ ПОКАЗЫВАЕМ УВЕДОМЛЕНИЕ ОБ ОШИБКЕ
+            // Показываем уведомление об ошибке
             showError('Не удалось создать чат. Попробуйте ещё раз', {
                 duration: 4000,
                 showCloseButton: true
@@ -103,10 +79,16 @@ const SchoolPage = ({ user }) => {
         }
     };
 
+    /**
+     * Обработчик клика по тесту
+     */
     const handleTestClick = (testId) => {
         navigate(`/test/${testId}`);
     };
 
+    /**
+     * Получить цвет для предмета
+     */
     const getSubjectColor = (subject) => {
         const colors = {
             'математика': '#ef4444',
@@ -146,11 +128,6 @@ const SchoolPage = ({ user }) => {
 
     return (
         <>
-            {/* ✅ КОНТЕЙНЕР ДЛЯ УВЕДОМЛЕНИЙ */}
-            {/*<NotificationContainer*/}
-            {/*    notifications={notifications}*/}
-            {/*    onRemove={removeNotification}*/}
-            {/*/>*/}
             <motion.div
                 className="home-page"
                 initial={{opacity: 0, y: 20}}
@@ -169,7 +146,7 @@ const SchoolPage = ({ user }) => {
                         <h1>Инструменты для учебы</h1>
                     </motion.div>
 
-                    {/* Переключатель вкладок */}
+                    {/* Переключатель вкладок с ОГЭ и ЕГЭ */}
                     <motion.div
                         className="tab-switcher"
                         initial={{opacity: 0, y: 30}}
@@ -182,7 +159,7 @@ const SchoolPage = ({ user }) => {
                             whileHover={{scale: 1.05}}
                             whileTap={{scale: 0.95}}
                         >
-                            Инструменты
+                            Чат-боты
                         </motion.button>
                         <motion.button
                             className={`tab-btn ${activeTab === 'tests' ? 'active' : ''}`}
@@ -192,11 +169,24 @@ const SchoolPage = ({ user }) => {
                         >
                             Тесты
                         </motion.button>
+                        <motion.button
+                            className={`tab-btn ${activeTab === 'oge' ? 'active' : ''}`}
+                            onClick={() => navigate('/exam-mode')}
+                            whileHover={{scale: 1.05}}
+                            whileTap={{scale: 0.95}}
+                        >
+                            Подготовка к {
+                            user?.grade >= 7 && user?.grade <= 9
+                                ? 'ОГЭ'
+                                : user?.grade >= 10 && user?.grade <= 11
+                                    ? 'ЕГЭ'
+                                    : ' '
+                        }
+                        </motion.button>
                     </motion.div>
 
-                    {/* Контент вкладок */}
-                    {activeTab === 'instruments' ? (
-                        /* ✅ ИНСТРУМЕНТЫ ИЗ JSON */
+                    {/* Контент вкладки "Чат-боты" */}
+                    {activeTab === 'instruments' && (
                         <motion.div
                             className="tools-grid"
                             initial={{opacity: 0, y: 30}}
@@ -248,8 +238,10 @@ const SchoolPage = ({ user }) => {
                                 );
                             })}
                         </motion.div>
-                    ) : (
-                        /* Тесты */
+                    )}
+
+                    {/* Контент вкладки "Тесты" */}
+                    {activeTab === 'tests' && (
                         <motion.div
                             initial={{opacity: 0, y: 30}}
                             animate={{opacity: 1, y: 0}}
@@ -326,6 +318,16 @@ const SchoolPage = ({ user }) => {
                                 ))}
                             </div>
                         </motion.div>
+                    )}
+
+                    {/* Контент вкладки "ОГЭ" */}
+                    {activeTab === 'oge' && (
+                        <ExamModePage examType="ОГЭ" user={user} />
+                    )}
+
+                    {/* Контент вкладки "ЕГЭ" */}
+                    {activeTab === 'ege' && (
+                        <ExamModePage examType="ЕГЭ" user={user} />
                     )}
                 </div>
             </motion.div>

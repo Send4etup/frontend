@@ -102,6 +102,7 @@
    =================================== */
 .settings-section {
     margin-bottom: 28px;
+    padding: 0 24px;
 }
 
 .settings-section:last-child {
