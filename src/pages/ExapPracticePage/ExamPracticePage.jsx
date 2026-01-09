@@ -85,7 +85,6 @@ const ExamPracticePage = ( user ) => {
                 answerData.task_id,
                 answerData.user_answer,
                 answerData.time_spent,
-                user.user_id
             );
 
             if (result.success && result.data) {
