@@ -1,85 +1,157 @@
-// src/pages/SchoolPage/SchoolPage.jsx - Обновленная версия с использованием JSON конфигурации
+// src/pages/SchoolPage/SchoolPage.jsx - Обновленная версия с роутингом к ОГЭ/ЕГЭ
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { createChat } from "../../services/chatAPI.js";
 import './SchoolPage.css';
 import { useNotifications, NotificationContainer } from '../../components/Notification/Notification.jsx';
+import { getStudyTools, getAgentPrompt, getAgentByAction } from '../../utils/aiAgentsUtils.js';
+import { useUserProfile } from "../../services/userApi.js";
+import { useAuth } from "../../hooks/useAuth.js";
 
-// ✅ ИМПОРТИРУЕМ АГЕНТОВ ИЗ JSON
-import {getStudyTools, getAgentPrompt, getAgentByAction} from '../../utils/aiAgentsUtils.js';
-
+/**
+ * Страница инструментов для учебы с динамическим роутингом к ОГЭ/ЕГЭ
+ */
 const SchoolPage = ({ user }) => {
+    const { token, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('instruments');
     const [selectedSubject, setSelectedSubject] = useState('all');
     const [error, setError] = useState(null);
     const { notifications, removeNotification, showError } = useNotifications();
 
-    // ✅ ПОЛУЧАЕМ УЧЕБНЫЕ ИНСТРУМЕНТЫ ИЗ JSON
+    // Получаем данные об образовании
+    const { loadEducation } = useUserProfile(token);
+    const [educationData, setEducationData] = useState({
+        user_type: null,
+        grade: null
+    });
+
+    // Получаем учебные инструменты из JSON конфигурации
     const studyTools = getStudyTools();
 
-    const subjects = [
-        { id: 'all', name: 'Все' },
-        { id: 'математика', name: 'Математика' },
-        { id: 'русский язык', name: 'Русский' },
-        { id: 'физика', name: 'Физика' },
-        { id: 'биология', name: 'Биология' },
-        { id: 'химия', name: 'Химия' },
-        { id: 'история', name: 'История' }
-    ];
+    // ============================================
+    // ЗАГРУЗКА ОБРАЗОВАТЕЛЬНЫХ ДАННЫХ
+    // ============================================
 
-    // const handleToolClick = async (tool) => {
-    //     try {
-    //         setError(null); // Добавить если есть состояние error
-    //
-    //         console.log('🎯 Creating tool chat:', tool.action);
-    //
-    //         // ✅ ПОЛУЧАЕМ ПРОМПТ ИЗ JSON КОНФИГУРАЦИИ
-    //         const agentPrompt = getAgentPrompt(tool.action);
-    //         console.log('Agent prompt for', tool.action, ':', agentPrompt);
-    //
-    //         // ✅ СОЗДАЕМ ЧАТ ЧЕРЕЗ API (как в HomePage)
-    //         const ChatCreateInfo = await createChat(tool.label, tool.action);
-    //
-    //         navigate(`/chat/${ChatCreateInfo.chat_id}`, {
-    //             state: {
-    //                 chatType: tool.action,
-    //                 toolConfig: tool,
-    //                 title: tool.label,
-    //                 agentPrompt: agentPrompt, // ✅ Передаем промпт в чат
-    //                 initialMessage: `Начинаем работу: ${tool.label}`
-    //             }
-    //         });
-    //
-    //     } catch (error) {
-    //         console.error('Failed to create tool chat:', error);
-    //         setError('Не удалось создать чат'); // Добавить если есть состояние error
-    //         // Fallback навигация
-    //         navigate(`/chat/demo_${tool.id}`);
-    //     }
-    // };
+    useEffect(() => {
+        const loadEducationData = async () => {
+            if (!isAuthenticated || !token) return;
 
+            try {
+                console.log('📥 SchoolPage: Loading education data...');
+                const data = await loadEducation();
+
+                if (data) {
+                    console.log('✅ SchoolPage: Education data loaded:', data);
+                    setEducationData({
+                        user_type: data.user_type,
+                        grade: data.grade
+                    });
+                }
+            } catch (error) {
+                console.error('❌ SchoolPage: Error loading education:', error);
+            }
+        };
+
+        if (isAuthenticated && token) {
+            loadEducationData();
+        }
+    }, [isAuthenticated, token, loadEducation]);
+
+    // ============================================
+    // ФУНКЦИИ ОПРЕДЕЛЕНИЯ ТИПА ЭКЗАМЕНА
+    // ============================================
+
+    /**
+     * Определить тип экзамена по классу
+     */
+    const getExamType = () => {
+        if (!educationData.grade) return null;
+
+        if (educationData.grade >= 7 && educationData.grade <= 9) {
+            return 'ОГЭ';
+        } else if (educationData.grade >= 10 && educationData.grade <= 11) {
+            return 'ЕГЭ';
+        }
+
+        return null;
+    };
+
+    /**
+     * Получить путь для роутинга к экзамену
+     */
+    const getExamRoute = () => {
+        const examType = getExamType();
+
+        if (examType === 'ОГЭ') {
+            return '/exam-mode/oge';
+        } else if (examType === 'ЕГЭ') {
+            return '/exam-mode/ege';
+        }
+
+        return null;
+    };
+
+    /**
+     * Получить текст кнопки экзамена
+     */
+    const getExamButtonText = () => {
+        const examType = getExamType();
+
+        if (examType === 'ОГЭ') {
+            return 'Подготовка к ОГЭ';
+        } else if (examType === 'ЕГЭ') {
+            return 'Подготовка к ЕГЭ';
+        }
+
+        return 'Экзамены';
+    };
+
+    /**
+     * Проверить доступность режима экзамена
+     */
+    const isExamModeAvailable = () => {
+        return getExamRoute() !== null;
+    };
+
+    // ============================================
+    // ОБРАБОТЧИКИ СОБЫТИЙ
+    // ============================================
+
+    /**
+     * Обработчик клика по кнопке экзамена
+     */
+    const handleExamClick = () => {
+        const route = getExamRoute();
+
+        if (route) {
+            console.log(`🎯 SchoolPage: Navigating to ${route}`);
+            navigate(route);
+        } else {
+            console.warn('⚠️ SchoolPage: Exam mode not available for this grade');
+            showError('Режим экзамена недоступен для вашего класса', {
+                duration: 3000
+            });
+        }
+    };
+
+    /**
+     * Обработчик клика по инструменту обучения
+     */
     const handleToolClick = async (actionType) => {
         try {
-            setError(null); // Добавить если есть состояние error
-
+            setError(null);
             console.log('🎯 Creating tool chat:', actionType);
 
-            // ✅ НАХОДИМ КОНФИГУРАЦИЮ ДЕЙСТВИЯ В JSON
             const actionConfig = getAgentByAction(actionType);
             if (!actionConfig) return;
 
-            // ✅ ПОЛУЧАЕМ ПРОМПТ ИЗ JSON КОНФИГУРАЦИИ
             const agentPrompt = getAgentPrompt(actionType);
-            console.log('Agent prompt for', actionType, ':', agentPrompt);
-
-            // ✅ СОЗДАЕМ ЧАТ ЧЕРЕЗ API (как в HomePage)
             const ChatCreateInfo = await createChat(actionConfig.label, actionType);
 
-            // ✅ ПРОВЕРЯЕМ УСПЕШНОСТЬ СОЗДАНИЯ ЧАТА
             if (!ChatCreateInfo.success) {
                 throw new Error(ChatCreateInfo.error || 'Не удалось создать чат');
             }
@@ -94,8 +166,6 @@ const SchoolPage = ({ user }) => {
 
         } catch (error) {
             console.error('Failed to create tool chat:', error);
-
-            // ✅ ПОКАЗЫВАЕМ УВЕДОМЛЕНИЕ ОБ ОШИБКЕ
             showError('Не удалось создать чат. Попробуйте ещё раз', {
                 duration: 4000,
                 showCloseButton: true
@@ -103,10 +173,20 @@ const SchoolPage = ({ user }) => {
         }
     };
 
+    /**
+     * Обработчик клика по тесту
+     */
     const handleTestClick = (testId) => {
         navigate(`/test/${testId}`);
     };
 
+    // ============================================
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    // ============================================
+
+    /**
+     * Получить цвет для предмета
+     */
     const getSubjectColor = (subject) => {
         const colors = {
             'математика': '#ef4444',
@@ -118,6 +198,17 @@ const SchoolPage = ({ user }) => {
         };
         return colors[subject] || '#43ff65';
     };
+
+    // Список предметов для фильтрации
+    const subjects = [
+        { id: 'all', name: 'Все' },
+        { id: 'математика', name: 'Математика' },
+        { id: 'русский язык', name: 'Русский' },
+        { id: 'физика', name: 'Физика' },
+        { id: 'биология', name: 'Биология' },
+        { id: 'химия', name: 'Химия' },
+        { id: 'история', name: 'История' }
+    ];
 
     // Моковые данные тестов
     const testsData = {
@@ -144,27 +235,25 @@ const SchoolPage = ({ user }) => {
         return test.subject === selectedSubject;
     });
 
+    // ============================================
+    // РЕНДЕР
+    // ============================================
+
     return (
         <>
-            {/* ✅ КОНТЕЙНЕР ДЛЯ УВЕДОМЛЕНИЙ */}
-            {/*<NotificationContainer*/}
-            {/*    notifications={notifications}*/}
-            {/*    onRemove={removeNotification}*/}
-            {/*/>*/}
             <motion.div
                 className="home-page"
-                initial={{opacity: 0, y: 20}}
-                animate={{opacity: 1, y: 0}}
-                exit={{opacity: 0, y: -20}}
-                transition={{duration: 0.5}}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
             >
-
                 <div className="home-container">
                     <motion.div
                         className="page-title"
-                        initial={{opacity: 0, y: 30}}
-                        animate={{opacity: 1, y: 0}}
-                        transition={{duration: 0.3}}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
                     >
                         <h1>Инструменты для учебы</h1>
                     </motion.div>
@@ -172,36 +261,48 @@ const SchoolPage = ({ user }) => {
                     {/* Переключатель вкладок */}
                     <motion.div
                         className="tab-switcher"
-                        initial={{opacity: 0, y: 30}}
-                        animate={{opacity: 1, y: 0}}
-                        transition={{duration: 0.3}}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
                     >
                         <motion.button
                             className={`tab-btn ${activeTab === 'instruments' ? 'active' : ''}`}
                             onClick={() => setActiveTab('instruments')}
-                            whileHover={{scale: 1.05}}
-                            whileTap={{scale: 0.95}}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                         >
-                            Инструменты
+                            Чат-боты
                         </motion.button>
+
                         <motion.button
                             className={`tab-btn ${activeTab === 'tests' ? 'active' : ''}`}
                             onClick={() => setActiveTab('tests')}
-                            whileHover={{scale: 1.05}}
-                            whileTap={{scale: 0.95}}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                         >
                             Тесты
                         </motion.button>
+
+                        {/* Кнопка экзамена с динамическим текстом и роутингом */}
+                        <motion.button
+                            className={`tab-btn ${!isExamModeAvailable() ? 'disabled' : ''}`}
+                            onClick={handleExamClick}
+                            disabled={!isExamModeAvailable()}
+                            whileHover={isExamModeAvailable() ? { scale: 1.05 } : {}}
+                            whileTap={isExamModeAvailable() ? { scale: 0.95 } : {}}
+                            title={!isExamModeAvailable() ? 'Доступно для 7-11 классов' : ''}
+                        >
+                            {getExamButtonText()}
+                        </motion.button>
                     </motion.div>
 
-                    {/* Контент вкладок */}
-                    {activeTab === 'instruments' ? (
-                        /* ✅ ИНСТРУМЕНТЫ ИЗ JSON */
+                    {/* Контент вкладки "Чат-боты" */}
+                    {activeTab === 'instruments' && (
                         <motion.div
                             className="tools-grid"
-                            initial={{opacity: 0, y: 30}}
-                            animate={{opacity: 1, y: 0}}
-                            transition={{duration: 0.3}}
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
                         >
                             {studyTools.map((tool, index) => {
                                 const IconComponent = tool.icon;
@@ -210,11 +311,11 @@ const SchoolPage = ({ user }) => {
                                         key={tool.id}
                                         className="tool-card"
                                         onClick={() => handleToolClick(tool.action)}
-                                        initial={{opacity: 0, y: 20}}
-                                        animate={{opacity: 1, y: 0}}
-                                        transition={{delay: index * 0.1}}
-                                        whileHover={{scale: 1.02, x: 5}}
-                                        whileTap={{scale: 0.98}}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                        whileHover={{ scale: 1.02, x: 5 }}
+                                        whileTap={{ scale: 0.98 }}
                                     >
                                         <div className="tool-info">
                                             <div
@@ -243,92 +344,96 @@ const SchoolPage = ({ user }) => {
                                                 <p className="tool-subtitle">{tool.subtitle}</p>
                                             </div>
                                         </div>
-                                        <ChevronRight className="tool-arrow"/>
+                                        <ChevronRight className="tool-arrow" />
                                     </motion.div>
                                 );
                             })}
                         </motion.div>
-                    ) : (
-                        /* Тесты */
+                    )}
+
+                    {/* Контент вкладки "Тесты" */}
+                    {activeTab === 'tests' && (
                         <motion.div
-                            initial={{opacity: 0, y: 30}}
-                            animate={{opacity: 1, y: 0}}
-                            transition={{duration: 0.3}}
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
                         >
                             {/* Фильтр по предметам */}
                             <div className="subjects-filter">
-                                <div className="subjects-scroll">
-                                    {subjects.map((subject) => (
-                                        <button
-                                            key={subject.id}
-                                            className={`subject-chip ${selectedSubject === subject.id ? 'active' : ''}`}
-                                            onClick={() => setSelectedSubject(subject.id)}
-                                        >
-                                            {subject.name}
-                                        </button>
-                                    ))}
-                                </div>
+                                {subjects.map(subject => (
+                                    <button
+                                        key={subject.id}
+                                        className={`subject-filter-btn ${selectedSubject === subject.id ? 'active' : ''}`}
+                                        onClick={() => setSelectedSubject(subject.id)}
+                                        style={{
+                                            borderColor: selectedSubject === subject.id
+                                                ? getSubjectColor(subject.id)
+                                                : 'transparent'
+                                        }}
+                                    >
+                                        {subject.name}
+                                    </button>
+                                ))}
                             </div>
 
                             {/* Список тестов */}
-                            <div className="tests-grid">
+                            <div className="tests-list">
                                 {filteredTests.map((test, index) => (
                                     <motion.div
                                         key={test.id}
-                                        className="task-card"
+                                        className="test-card"
                                         onClick={() => handleTestClick(test.id)}
-                                        initial={{opacity: 0, y: 20}}
-                                        animate={{opacity: 1, y: 0}}
-                                        transition={{delay: index * 0.1}}
-                                        whileHover={{scale: 1.02, x: 5}}
-                                        whileTap={{scale: 0.98}}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                        whileHover={{ scale: 1.02, x: 5 }}
+                                        whileTap={{ scale: 0.98 }}
                                     >
-                                        <div className="task-header">
-                                            <div className="task-info">
-                                                <h3 className="task-title">{test.title}</h3>
-                                                <div className="task-meta">
-                                                <span
-                                                    className="task-subject"
-                                                    style={{
-                                                        backgroundColor: getSubjectColor(test.subject),
-                                                        color: '#000',
-                                                        padding: '2px 8px',
-                                                        borderRadius: '12px',
-                                                        fontSize: '11px',
-                                                        fontWeight: '500'
-                                                    }}
-                                                >
-                                                    {test.subject}
-                                                </span>
-                                                    <span className="task-date">{test.date}</span>
-                                                </div>
-                                            </div>
-                                            <ChevronRight className="task-arrow"/>
+                                        <div className="test-header">
+                                            <span
+                                                className="test-subject-badge"
+                                                style={{
+                                                    backgroundColor: getSubjectColor(test.subject) + '20',
+                                                    color: getSubjectColor(test.subject)
+                                                }}
+                                            >
+                                                {test.subject}
+                                            </span>
+                                            <span className="test-date">{test.date}</span>
                                         </div>
 
-                                        <div className="task-progress">
-                                            <div className="progress-info">
-                                            <span className="progress-text">
-                                                {test.completedQuestions}/{test.totalQuestions}
-                                            </span>
-                                            </div>
-                                            <div className="progress-bar">
+                                        <h3 className="test-title">{test.title}</h3>
+
+                                        <div className="test-progress-info">
+                                            <div className="test-progress-bar">
                                                 <div
-                                                    className="progress-fill"
+                                                    className="test-progress-fill"
                                                     style={{
                                                         width: `${(test.completedQuestions / test.totalQuestions) * 100}%`,
-                                                        backgroundColor: '#43ff65'
+                                                        backgroundColor: getSubjectColor(test.subject)
                                                     }}
                                                 />
                                             </div>
+                                            <span className="test-progress-text">
+                                                {test.completedQuestions}/{test.totalQuestions} вопросов
+                                            </span>
                                         </div>
                                     </motion.div>
                                 ))}
+
+                                {filteredTests.length === 0 && (
+                                    <div className="no-tests-message">
+                                        Тесты по выбранному предмету не найдены
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
                     )}
                 </div>
             </motion.div>
+
+            {/* Контейнер уведомлений */}
+            <NotificationContainer notifications={notifications} onRemove={removeNotification} />
         </>
     );
 };

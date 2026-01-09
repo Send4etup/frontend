@@ -9,6 +9,7 @@ import { createChat, getUserChats, transcribeAudio } from "../../services/chatAP
 import RecentChats from "../../components/RecentChats/RecentChats.jsx";
 import { getQuickActions, getAgentPrompt, getAgentByAction } from '../../utils/aiAgentsUtils.js';
 import { getRandomQuote } from "./quotes.js";
+import {useAuth} from "../../hooks/useAuth.js";
 
 
 const VoiceRecordingVisualizer = ({ isRecording }) => {
@@ -20,8 +21,8 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
     const dataArrayRef = useRef(null);
     const animationFrameRef = useRef(null);
 
-    const MAX_BARS = 80; // ✅ Уменьшено для более плавной работы
-    const UPDATE_INTERVAL = 80; // ✅ Увеличена частота обновления (было 100)
+    const MAX_BARS = 80;
+    const UPDATE_INTERVAL = 80;
 
     useEffect(() => {
         if (!isRecording) {
@@ -54,9 +55,8 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
                 const analyser = audioContext.createAnalyser();
                 const source = audioContext.createMediaStreamSource(stream);
 
-                // ✅ УЛУЧШЕНО: Больше деталей и быстрее реакция
-                analyser.fftSize = 128; // ✅ Было 128, стало 512 - больше деталей
-                analyser.smoothingTimeConstant = 0.6; // ✅ Было 0.7, стало 0.3 - быстрее реакция
+                analyser.fftSize = 128;
+                analyser.smoothingTimeConstant = 0.6;
 
                 source.connect(analyser);
 
@@ -72,7 +72,6 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
             }
         }
 
-        // ✅ УЛУЧШЕННЫЙ алгоритм расчета высоты палочки
         function getBarHeight() {
             if (!analyserRef.current || !dataArrayRef.current) {
                 return Math.random() * 0.6 + 0.2;
@@ -80,11 +79,9 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
 
             analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-            // ✅ Используем средние частоты (более чувствительные к голосу)
             const midFreqStart = Math.floor(dataArrayRef.current.length * 0.2);
             const midFreqEnd = Math.floor(dataArrayRef.current.length * 0.6);
 
-            // ✅ Берем пиковые значения вместо среднего
             let maxValue = 0;
             for (let i = midFreqStart; i < midFreqEnd; i++) {
                 if (dataArrayRef.current[i] > maxValue) {
@@ -92,11 +89,9 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
                 }
             }
 
-            // ✅ Нормализация с усилением
             let normalized = (maxValue / 255) * 1.5; // Усиление в 1.5 раза
             normalized = Math.min(normalized, 1); // Ограничиваем максимум
 
-            // ✅ Минимальная высота для визуальной активности
             return Math.max(normalized, 0.15);
         }
 
@@ -154,7 +149,6 @@ const VoiceRecordingVisualizer = ({ isRecording }) => {
         <div className="voice-visualizer">
             <div className="voice-bars-container">
                 {bars.map((height, index) => (
-                    // ✅ ДОБАВЛЕНО: Плавная анимация появления с Framer Motion
                     <motion.div
                         key={`bar-${index}-${Date.now()}`}
                         className="voice-bar"

@@ -9,7 +9,7 @@ const Layout = ({ user }) => {
 
     // Функция для проверки скрытия навигации
     const shouldHideBottomNav = (pathname) => {
-        const hiddenPaths = ['/friends', '/teachers', '/ideas'];
+        const hiddenPaths = ['/friends', '/teachers', '/ideas', '/voice-mode'];
         const hiddenPathPrefixes = ['/test/', '/chat/'];
 
         return hiddenPaths.includes(pathname) ||

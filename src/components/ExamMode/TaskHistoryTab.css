@@ -1,0 +1,471 @@
+/* src/components/ExamMode/TaskHistoryTab.css */
+
+/**
+ * Стили для компонента истории заданий
+ * Раздел "Практика" - История решенных заданий
+ */
+
+/* =====================================================
+   LOADING, ERROR, EMPTY СОСТОЯНИЯ
+   ===================================================== */
+
+.task-history-loading,
+.task-history-error,
+.task-history-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 16px;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.task-history-loading p,
+.task-history-error p,
+.task-history-empty p {
+    color: #888;
+    font-size: 14px;
+    margin: 0;
+}
+
+.task-history-error h3,
+.task-history-empty h3 {
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.empty-icon {
+    font-size: 64px;
+    margin-bottom: 8px;
+}
+
+/* =====================================================
+   ОСНОВНОЙ КОНТЕЙНЕР
+   ===================================================== */
+
+.task-history-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* =====================================================
+   БАННЕР С НЕПРАВИЛЬНЫМИ ЗАДАНИЯМИ
+   ===================================================== */
+
+.incorrect-summary-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 12px;
+    gap: 16px;
+}
+
+.banner-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.banner-text h4 {
+    margin: 0 0 4px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.banner-text p {
+    margin: 0;
+    font-size: 13px;
+    color: #888;
+}
+
+.show-incorrect-btn {
+    padding: 10px 20px;
+    background-color: #f59e0b;
+    color: #0d0d0d;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.show-incorrect-btn:hover {
+    background-color: #d97706;
+    transform: translateY(-2px);
+}
+
+.show-incorrect-btn:active {
+    transform: translateY(0);
+}
+
+/* =====================================================
+   ФИЛЬТРЫ
+   ===================================================== */
+
+.history-filters {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #888;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-tab:hover {
+    background-color: #2d2d2d;
+    border-color: rgba(67, 255, 101, 0.3);
+    color: #fff;
+}
+
+.filter-tab.active {
+    background: linear-gradient(135deg, rgba(67, 255, 101, 0.15), rgba(67, 255, 101, 0.1));
+    border-color: rgba(67, 255, 101, 0.4);
+    color: #43ff65;
+}
+
+.filter-tab.incorrect:hover,
+.filter-tab.incorrect.active {
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.filter-tab.incorrect.active {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.1));
+    color: #ef4444;
+}
+
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background-color: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 10px;
+}
+
+.reset-filters-btn,
+.reset-filters-btn-small {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #888;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.reset-filters-btn:hover,
+.reset-filters-btn-small:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+/* =====================================================
+   СПИСОК ЗАДАНИЙ
+   ===================================================== */
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.history-item {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    background-color: #2a2a2a;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s;
+}
+
+.history-item:hover {
+    background-color: #2d2d2d;
+    border-color: rgba(67, 255, 101, 0.2);
+    transform: translateX(4px);
+}
+
+.history-item.incorrect:hover {
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Иконка статуса */
+.status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.status-icon.correct {
+    background: rgba(67, 255, 101, 0.1);
+    color: #43ff65;
+}
+
+.status-icon.incorrect {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* Контент элемента */
+.history-item-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0; /* Для правильного обрезания текста */
+}
+
+.history-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.item-subject-difficulty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.item-subject {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.item-difficulty {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.item-date {
+    font-size: 12px;
+    color: #888;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.item-question {
+    margin: 0;
+    font-size: 14px;
+    color: #ccc;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.item-details {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: #888;
+}
+
+.item-time,
+.item-points {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Кнопка повторного решения */
+.retry-task-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, rgba(67, 255, 101, 0.1), rgba(67, 255, 101, 0.05));
+    border: 1px solid rgba(67, 255, 101, 0.3);
+    border-radius: 8px;
+    color: #43ff65;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.retry-task-btn:hover {
+    background: linear-gradient(135deg, rgba(67, 255, 101, 0.2), rgba(67, 255, 101, 0.1));
+    border-color: rgba(67, 255, 101, 0.5);
+    transform: translateY(-2px);
+}
+
+.retry-task-btn:active {
+    transform: translateY(0);
+}
+
+/* =====================================================
+   ЗАГРУЗИТЬ БОЛЬШЕ
+   ===================================================== */
+
+.load-more-container {
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.load-more-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background-color: #2a2a2a;
+    border: 1px solid rgba(67, 255, 101, 0.3);
+    border-radius: 8px;
+    color: #43ff65;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.load-more-btn:hover:not(:disabled) {
+    background-color: #2d2d2d;
+    border-color: rgba(67, 255, 101, 0.5);
+    transform: translateY(-2px);
+}
+
+.load-more-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.load-more-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* =====================================================
+   АДАПТИВНОСТЬ
+   ===================================================== */
+
+@media (max-width: 768px) {
+    .incorrect-summary-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .show-incorrect-btn {
+        width: 100%;
+    }
+
+    .history-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-tabs {
+        flex-direction: column;
+    }
+
+    .filter-tab {
+        justify-content: center;
+    }
+
+    .history-item {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .status-icon {
+        align-self: flex-start;
+        width: 40px;
+        height: 40px;
+    }
+
+    .history-item-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .item-date {
+        align-self: flex-end;
+    }
+
+    .history-item-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .retry-task-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* =====================================================
+   АНИМАЦИИ
+   ===================================================== */
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}

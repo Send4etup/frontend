@@ -13,6 +13,8 @@ import VideosPage from './pages/VideosPage/VideosPage';
 import TestPage from "./pages/TestPage/TestPage.jsx";
 import AIChatPage from "./pages/ChatPage/ChatPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage/NotFoundPage.jsx";
+import OgeExamModePage from "./pages/ExamModePage/OgeExamModePage.jsx";
+import EgeExamModePage from "./pages/ExamModePage/EgeExamModePage.jsx";
 
 // Components
 import Layout from './components/Layout/Layout';
@@ -27,6 +29,9 @@ import { useAuth } from "./hooks/useAuth.js";
 // Styles
 import './App.css';
 import ChatHistoryPage from "./pages/ChatHistoryPage/ChatHistoryPage.jsx";
+import VoiceModePage from "./pages/VoiceModePage/VoiceModePage.jsx";
+import ExamPracticePage from "./pages/ExapPracticePage/ExamPracticePage.jsx";
+import ExamTaskPage from "./pages/ExamTaskPage/ExamTaskPage.jsx";
 
 // =====================================================
 // КОМПОНЕНТЫ ДЛЯ ОТОБРАЖЕНИЯ СОСТОЯНИЙ
@@ -299,16 +304,17 @@ function App() {
                 <AnimatePresence mode="wait">
                     <Routes>
                         <Route path="/" element={<Layout user={userWithMethods} />}>
-                            <Route index element={<Navigate to="/home" replace />} />
-
-                            {/* Все страницы получают авторизованного пользователя */}
+                            <Route
+                                index
+                                element={<Navigate to="/home" replace />}
+                            />
                             <Route
                                 path="home"
                                 element={<HomePage user={userWithMethods} />}
                             />
                             <Route
                                 path="school"
-                                element={<SchoolPage user={userWithMethods} />}
+                                element={<SchoolPage/>}
                             />
                             <Route
                                 path="education"
@@ -322,14 +328,10 @@ function App() {
                                 path="ideas"
                                 element={<IdeasPage user={userWithMethods} />}
                             />
-
-                            {/* Страницы категорий образования */}
                             <Route
                                 path="videos"
                                 element={<VideosPage user={userWithMethods} />}
                             />
-
-                            {/* Страницы чатов и тестов */}
                             <Route
                                 path="test/:testId"
                                 element={<TestPage user={userWithMethods} />}
@@ -341,6 +343,26 @@ function App() {
                             <Route
                                 path="chats-history"
                                 element={<ChatHistoryPage user={user} />}
+                            />
+                            <Route
+                                path="/exam-mode/oge"
+                                element={<OgeExamModePage user={user.db} />}
+                            />
+                            <Route
+                                path="/exam-mode/ege"
+                                element={<EgeExamModePage user={user.db} />}
+                            />
+                            <Route
+                                path="/exam/practice/:subjectId/:examType"
+                                element={<ExamPracticePage user={user.db} />}
+                            />
+                            <Route
+                                path="/exam/task/:taskId"
+                                element={<ExamTaskPage />}
+                            />
+                            <Route
+                                path="voice-mode"
+                                element={<VoiceModePage user={user} />}
                             />
                             <Route
                                 path="*"

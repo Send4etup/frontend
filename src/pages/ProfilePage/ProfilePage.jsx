@@ -20,8 +20,19 @@ const ProfilePage = () => {
         isLoading: profileLoading,
         error: profileError,
         loadExtendedProfile,
-        updateProfile
+        updateProfile,
+        loadEducation,
+        updateEducation
     } = useUserProfile(token);
+
+    const [showEducationModal, setShowEducationModal] = useState(false);
+    const [selectedUserType, setSelectedUserType] = useState(null);
+    const [selectedGrade, setSelectedGrade] = useState(null);
+    const [educationLoading, setEducationLoading] = useState(false);
+    const [educationData, setEducationData] = useState({
+        user_type: null,
+        grade: null
+    });
 
     const [isEditing, setIsEditing] = useState(false);
     const [showTariffModal, setShowTariffModal] = useState(false);
@@ -34,6 +45,30 @@ const ProfilePage = () => {
             loadProfileData();
         }
     }, [isAuthenticated, token]);
+
+    useEffect(() => {
+        if (isAuthenticated && token) {
+            loadEducationData();
+        }
+    }, [isAuthenticated, token]);
+
+    const loadEducationData = async () => {
+        try {
+            // Используем метод из хука useUserProfile
+            const data = await loadEducation();
+
+            if (data) {
+                setEducationData({
+                    user_type: data.user_type,
+                    grade: data.grade
+                });
+                setSelectedUserType(data.user_type);
+                setSelectedGrade(data.grade);
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки образовательной информации:', error);
+        }
+    };
 
     const loadProfileData = async () => {
         try {
@@ -92,6 +127,62 @@ const ProfilePage = () => {
         }
     ];
 
+    const handleEducationClick = () => {
+        // Загружаем текущие значения в локальное состояние модала
+        setSelectedUserType(educationData.user_type);
+        setSelectedGrade(educationData.grade);
+        setShowEducationModal(true);
+    };
+
+    const handleCloseEducationModal = () => {
+        setShowEducationModal(false);
+        // Сбрасываем выбор к сохраненным значениям
+        setSelectedUserType(educationData.user_type);
+        setSelectedGrade(educationData.grade);
+    };
+
+    const handleUserTypeSelect = (type) => {
+        setSelectedUserType(type);
+        // Сбрасываем класс/курс при смене типа
+        setSelectedGrade(null);
+    };
+
+    const handleGradeSelect = (grade) => {
+        setSelectedGrade(grade);
+    };
+
+    const handleSaveEducation = async () => {
+        try {
+            if (!selectedUserType || !selectedGrade) {
+                alert('Пожалуйста, выбери тип и класс/курс');
+                return;
+            }
+
+            setEducationLoading(true);
+
+            const result = await updateEducation({
+                user_type: selectedUserType,
+                grade: selectedGrade
+            });
+
+            if (result) {
+                setEducationData({
+                    user_type: selectedUserType,
+                    grade: selectedGrade
+                });
+
+                setShowEducationModal(false);
+
+                console.log('✅ Образовательная информация обновлена:', result);
+            }
+        } catch (error) {
+            console.error('Ошибка сохранения:', error);
+            alert(error.message || 'Не удалось сохранить данные');
+        } finally {
+            setEducationLoading(false);
+        }
+    };
+
     const handleNavigation = (path) => {
         navigate(path);
     };
@@ -116,6 +207,28 @@ const ProfilePage = () => {
         } catch (error) {
             console.error('Failed to update profile:', error);
         }
+    };
+
+    const getGradeOptions = () => {
+        if (selectedUserType === 'schooler') {
+            return Array.from({ length: 11 }, (_, i) => i + 1);
+        } else if (selectedUserType === 'student') {
+            return Array.from({ length: 6 }, (_, i) => i + 1);
+        }
+        return [];
+    };
+
+    const getEducationLabel = () => {
+        if (!educationData.user_type || !educationData.grade) {
+            return 'Не указано';
+        }
+
+        const typeLabel = educationData.user_type === 'schooler' ? 'Школьник' : 'Студент';
+        const gradeLabel = educationData.user_type === 'schooler'
+            ? `${educationData.grade} класс`
+            : `${educationData.grade} курс`;
+
+        return `${typeLabel}, ${gradeLabel}`;
     };
 
     // Проверяем авторизацию
@@ -303,7 +416,7 @@ const ProfilePage = () => {
                             ) : null}
                             <User
                                 className="avatar-icon"
-                                style={{ display: user?.telegram?.photo_url ? 'none' : 'block' }}
+                                style={{display: user?.telegram?.photo_url ? 'none' : 'block'}}
                             />
                         </div>
                         <div className="profile-info">
@@ -357,7 +470,184 @@ const ProfilePage = () => {
                             <ChevronRight className="menu-arrow"/>
                         </div>
                     </motion.button>
+
+                    <AnimatePresence>
+                        {showEducationModal && (
+                            <motion.div
+                                className="tariff-modal-backdrop"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={handleCloseEducationModal}
+                            >
+                                <motion.div
+                                    className="tariff-modal"
+                                    initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 50, scale: 0.9 }}
+                                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="tariff-modal-header">
+                                        <h2 className="modal-title">Твоё образование</h2>
+                                        <motion.button
+                                            onClick={handleCloseEducationModal}
+                                            className="modal-close-btn"
+                                            whileHover={{ scale: 1.1 }}
+                                            whileTap={{ scale: 0.9 }}
+                                        >
+                                            <X className="icon" />
+                                        </motion.button>
+                                    </div>
+
+                                    {/* Выбор типа пользователя */}
+                                    <div style={{ marginBottom: '24px' }}>
+                                        <h3 style={{
+                                            fontSize: '16px',
+                                            fontWeight: '600',
+                                            marginBottom: '12px',
+                                            color: '#ffffff'
+                                        }}>
+                                            Ты...
+                                        </h3>
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gap: '12px'
+                                        }}>
+                                            <motion.div
+                                                className={`tariff-option ${selectedUserType === 'schooler' ? 'current' : ''}`}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => handleUserTypeSelect('schooler')}
+                                                style={{ cursor: 'pointer' }}
+                                            >
+                                                <div style={{
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    padding: '16px'
+                                                }}>
+                                                    <span style={{ fontSize: '32px' }}>🎓</span>
+                                                    <span style={{
+                                                        fontSize: '16px',
+                                                        fontWeight: '600',
+                                                        color: '#ffffff'
+                                                    }}>
+                                    Школьник
+                                </span>
+                                                </div>
+                                            </motion.div>
+
+                                            <motion.div
+                                                className={`tariff-option ${selectedUserType === 'student' ? 'current' : ''}`}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => handleUserTypeSelect('student')}
+                                                style={{ cursor: 'pointer' }}
+                                            >
+                                                <div style={{
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    padding: '16px'
+                                                }}>
+                                                    <span style={{ fontSize: '32px' }}>🎯</span>
+                                                    <span style={{
+                                                        fontSize: '16px',
+                                                        fontWeight: '600',
+                                                        color: '#ffffff'
+                                                    }}>
+                                    Студент
+                                </span>
+                                                </div>
+                                            </motion.div>
+                                        </div>
+                                    </div>
+
+                                    {/* Выбор класса/курса */}
+                                    {selectedUserType && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            style={{ marginBottom: '24px' }}
+                                        >
+                                            <h3 style={{
+                                                fontSize: '16px',
+                                                fontWeight: '600',
+                                                marginBottom: '12px',
+                                                color: '#ffffff'
+                                            }}>
+                                                {selectedUserType === 'schooler' ? 'В каком классе?' : 'На каком курсе?'}
+                                            </h3>
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))',
+                                                gap: '8px'
+                                            }}>
+                                                {getGradeOptions().map((grade) => (
+                                                    <motion.div
+                                                        key={grade}
+                                                        className={`tariff-option ${selectedGrade === grade ? 'current' : ''}`}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleGradeSelect(grade)}
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                            padding: '12px',
+                                                            textAlign: 'center'
+                                                        }}
+                                                    >
+                                    <span style={{
+                                        fontSize: '18px',
+                                        fontWeight: '600',
+                                        color: '#ffffff'
+                                    }}>
+                                        {grade}
+                                    </span>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {/* Кнопка сохранения */}
+                                    <motion.button
+                                        className="btn btn-primary modal-btn"
+                                        whileHover={{scale: 1.05}}
+                                        whileTap={{scale: 0.95}}
+                                        onClick={handleSaveEducation}
+                                        disabled={!selectedUserType || !selectedGrade || educationLoading}  // ТУТ
+                                        style={{
+                                            opacity: (!selectedUserType || !selectedGrade || educationLoading) ? 0.5 : 1,  // И ТУТ
+                                            cursor: (!selectedUserType || !selectedGrade || educationLoading) ? 'not-allowed' : 'pointer'  // И ТУТ
+                                        }}
+                                    >
+                                        {educationLoading ? 'Сохраняем...' : 'Сохранить'} // И ТУТ
+                                    </motion.button>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </motion.div>
+
+                <motion.button
+                    onClick={handleEducationClick}
+                    className="menu-item"
+                    whileHover={{x: 5}}
+                    whileTap={{scale: 0.98}}
+                >
+                    <div className="menu-left">
+                        <h4 className="menu-label">Образование</h4>
+                        <p className="menu-value">{getEducationLabel()}</p>
+                    </div>
+                    <div className="menu-right">
+                        <ChevronRight className="menu-arrow"/>
+                    </div>
+                </motion.button>
 
                 <motion.div
                     className="tariff-card"
@@ -366,8 +656,8 @@ const ProfilePage = () => {
                 >
                     <motion.div
                         className="tariff-content"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
+                        initial={{opacity: 0, x: -20}}
+                        animate={{opacity: 1, x: 0}}
                     >
                         <div>
                             <p className="tariff-title">
@@ -387,17 +677,17 @@ const ProfilePage = () => {
                     {showTariffModal && (
                         <motion.div
                             className="tariff-modal-backdrop"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
+                            initial={{opacity: 0}}
+                            animate={{opacity: 1}}
+                            exit={{opacity: 0}}
                             onClick={handleCloseTariffModal}
                         >
                             <motion.div
                                 className="tariff-modal"
-                                initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 50, scale: 0.9 }}
-                                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                                initial={{opacity: 0, y: 50, scale: 0.9}}
+                                animate={{opacity: 1, y: 0, scale: 1}}
+                                exit={{opacity: 0, y: 50, scale: 0.9}}
+                                transition={{type: "spring", damping: 25, stiffness: 300}}
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <div className="tariff-modal-header">
@@ -405,10 +695,10 @@ const ProfilePage = () => {
                                     <motion.button
                                         onClick={handleCloseTariffModal}
                                         className="modal-close-btn"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
+                                        whileHover={{scale: 1.1}}
+                                        whileTap={{scale: 0.9}}
                                     >
-                                        <X className="icon" />
+                                        <X className="icon"/>
                                     </motion.button>
                                 </div>
 
@@ -417,16 +707,16 @@ const ProfilePage = () => {
                                         <motion.div
                                             key={sub.id}
                                             className={`tariff-option ${sub.isCurrent ? 'current' : ''} ${sub.isPopular ? 'popular' : ''}`}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: index * 0.1 }}
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
+                                            initial={{opacity: 0, x: -20}}
+                                            animate={{opacity: 1, x: 0}}
+                                            transition={{delay: index * 0.1}}
+                                            whileHover={{scale: 1.02}}
+                                            whileTap={{scale: 0.98}}
                                             onClick={() => handleSubscriptionClick(sub.id)}
                                         >
                                             <div className="tariff-option-left">
                                                 <div className={`radio-button ${sub.isCurrent ? 'selected' : ''}`}>
-                                                    {sub.isCurrent && <div className="radio-dot" />}
+                                                    {sub.isCurrent && <div className="radio-dot"/>}
                                                 </div>
                                                 <div className="tariff-option-info">
                                                     <div className="tariff-option-header">
@@ -453,8 +743,8 @@ const ProfilePage = () => {
                                 <div className="modal-actions">
                                     <motion.button
                                         className="btn btn-primary modal-btn"
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
+                                        whileHover={{scale: 1.05}}
+                                        whileTap={{scale: 0.95}}
                                         onClick={handleCloseTariffModal}
                                     >
                                         Подписаться
