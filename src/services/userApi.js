@@ -94,6 +94,50 @@ export const userApi = {
     },
 
     /**
+     * Получение образовательной информации пользователя
+     */
+    async getEducation(token) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/profile/education`, {
+                method: 'GET',
+                headers: getAuthHeaders(token),
+                credentials: 'include'
+            });
+
+            return await handleApiResponse(response);
+        } catch (error) {
+            console.error('Ошибка получения образовательной информации:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Обновление образовательной информации пользователя
+     * @param {string} token - JWT токен авторизации
+     * @param {Object} educationData - Данные об образовании
+     * @param {string} educationData.user_type - Тип пользователя: 'schooler' или 'student'
+     * @param {number} educationData.grade - Класс (1-11) для школьников или курс (1-6) для студентов
+     */
+    async updateEducation(token, educationData) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/profile/education`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(token),
+                credentials: 'include',
+                body: JSON.stringify({
+                    user_type: educationData.user_type,
+                    grade: educationData.grade,
+                })
+            });
+
+            return await handleApiResponse(response);
+        } catch (error) {
+            console.error('Ошибка обновления образовательной информации:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Получение статистики использования токенов
      */
     async getTokenUsageStats(token, days = 30) {
@@ -284,6 +328,56 @@ export const useUserProfile = (token) => {
     }, [token]);
 
     /**
+     * Загрузка образовательной информации
+     */
+    const loadEducation = useCallback(async () => {
+        if (!token) return null;
+
+        try {
+            return await userApi.getEducation(token);
+        } catch (err) {
+            console.error('Ошибка загрузки образовательной информации:', err);
+            return null;
+        }
+    }, [token]);
+
+    /**
+     * Обновление образовательной информации
+     * @param {Object} educationData - Объект с полями user_type и grade
+     */
+    const updateEducation = useCallback(async (educationData) => {
+        if (!token) {
+            setError('Токен авторизации отсутствует');
+            return false;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+
+            const result = await userApi.updateEducation(token, educationData);
+
+            // Обновляем локальные данные профиля
+            setProfileData(prev => ({
+                ...prev,
+                education: {
+                    user_type: educationData.user_type,
+                    grade: educationData.grade
+                }
+            }));
+
+            return result;
+        } catch (err) {
+            setError(err.message);
+            console.error('Ошибка обновления образовательной информации:', err);
+            throw err;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [token]);
+
+    /**
      * Загрузка статистики токенов
      */
     const loadTokenStats = useCallback(async (days = 30) => {
@@ -320,6 +414,8 @@ export const useUserProfile = (token) => {
         // Методы
         loadExtendedProfile,
         updateProfile,
+        loadEducation,
+        updateEducation,
         loadTokenStats,
         loadActivityHistory,
 
