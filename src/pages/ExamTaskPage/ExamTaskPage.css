@@ -1,0 +1,263 @@
+/* src/pages/ExamTaskPage/ExamTaskPage.css */
+/**
+ * Стили для страницы решения одного задания (retry)
+ */
+
+/* Основной контейнер страницы */
+.exam-task-page {
+    min-height: 100vh;
+    background: #0d0d0d;
+    padding: 20px;
+}
+
+.exam-task-page-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Хедер страницы */
+.exam-task-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* Кнопка назад */
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background: #333;
+    border-color: rgba(67, 255, 101, 0.3);
+    transform: translateX(-2px);
+}
+
+/* Бейдж повторного решения */
+.retry-badge {
+    padding: 8px 16px;
+    background: rgba(87, 139, 246, 0.1);
+    border: 1px solid rgba(87, 139, 246, 0.3);
+    border-radius: 12px;
+    color: #578BF6;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Контент страницы */
+.exam-task-page-content {
+    margin-bottom: 24px;
+}
+
+/* Дополнительные действия */
+.exam-task-page-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.retry-task-btn,
+.back-to-history-btn {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.retry-task-btn {
+    background: #f59e0b;
+    color: #0d0d0d;
+}
+
+.retry-task-btn:hover {
+    background: #f59e0bdd;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.back-to-history-btn {
+    background: #578BF6;
+    color: #fff;
+}
+
+.back-to-history-btn:hover {
+    background: #4a7ee6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(87, 139, 246, 0.4);
+}
+
+/* Loading состояние */
+.exam-task-page-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 20px;
+}
+
+.exam-task-page-loading p {
+    color: #fff;
+    font-size: 16px;
+}
+
+/* Error состояние */
+.exam-task-page-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 16px;
+    text-align: center;
+    padding: 20px;
+}
+
+.exam-task-page-error h3 {
+    color: #fff;
+    font-size: 24px;
+    margin: 0;
+}
+
+.exam-task-page-error p {
+    color: #888;
+    font-size: 16px;
+    margin: 0;
+    max-width: 500px;
+}
+
+.error-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.retry-btn,
+.back-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.retry-btn {
+    background: #43ff65;
+    color: #0d0d0d;
+}
+
+.retry-btn:hover {
+    background: #3ee85c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(67, 255, 101, 0.4);
+}
+
+.back-btn {
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.back-btn:hover {
+    background: #333;
+    border-color: rgba(67, 255, 101, 0.3);
+}
+
+/* Оверлей при отправке */
+.submitting-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 9999;
+}
+
+.submitting-overlay p {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Анимация вращения */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .exam-task-page {
+        padding: 12px;
+    }
+
+    .exam-task-page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .back-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .retry-badge {
+        text-align: center;
+    }
+
+    .exam-task-page-actions {
+        flex-direction: column;
+    }
+
+    .retry-task-btn,
+    .back-to-history-btn {
+        width: 100%;
+    }
+
+    .error-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .retry-btn,
+    .back-btn {
+        width: 100%;
+    }
+}

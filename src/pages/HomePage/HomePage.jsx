@@ -9,6 +9,7 @@ import { createChat, getUserChats, transcribeAudio } from "../../services/chatAP
 import RecentChats from "../../components/RecentChats/RecentChats.jsx";
 import { getQuickActions, getAgentPrompt, getAgentByAction } from '../../utils/aiAgentsUtils.js';
 import { getRandomQuote } from "./quotes.js";
+import {useAuth} from "../../hooks/useAuth.js";
 
 
 const VoiceRecordingVisualizer = ({ isRecording }) => {

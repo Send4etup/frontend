@@ -13,6 +13,8 @@ import VideosPage from './pages/VideosPage/VideosPage';
 import TestPage from "./pages/TestPage/TestPage.jsx";
 import AIChatPage from "./pages/ChatPage/ChatPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage/NotFoundPage.jsx";
+import OgeExamModePage from "./pages/ExamModePage/OgeExamModePage.jsx";
+import EgeExamModePage from "./pages/ExamModePage/EgeExamModePage.jsx";
 
 // Components
 import Layout from './components/Layout/Layout';
@@ -27,8 +29,9 @@ import { useAuth } from "./hooks/useAuth.js";
 // Styles
 import './App.css';
 import ChatHistoryPage from "./pages/ChatHistoryPage/ChatHistoryPage.jsx";
-import ExamModePage from "./pages/ExamModePage/ExamModePage.jsx";
 import VoiceModePage from "./pages/VoiceModePage/VoiceModePage.jsx";
+import ExamPracticePage from "./pages/ExapPracticePage/ExamPracticePage.jsx";
+import ExamTaskPage from "./pages/ExamTaskPage/ExamTaskPage.jsx";
 
 // =====================================================
 // КОМПОНЕНТЫ ДЛЯ ОТОБРАЖЕНИЯ СОСТОЯНИЙ
@@ -311,7 +314,7 @@ function App() {
                             />
                             <Route
                                 path="school"
-                                element={<SchoolPage user={user.db} />}
+                                element={<SchoolPage/>}
                             />
                             <Route
                                 path="education"
@@ -342,8 +345,20 @@ function App() {
                                 element={<ChatHistoryPage user={user} />}
                             />
                             <Route
-                                path="exam-mode"
-                                element={<ExamModePage user={user.db} />}
+                                path="/exam-mode/oge"
+                                element={<OgeExamModePage user={user.db} />}
+                            />
+                            <Route
+                                path="/exam-mode/ege"
+                                element={<EgeExamModePage user={user.db} />}
+                            />
+                            <Route
+                                path="/exam/practice/:subjectId/:examType"
+                                element={<ExamPracticePage user={user.db} />}
+                            />
+                            <Route
+                                path="/exam/task/:taskId"
+                                element={<ExamTaskPage />}
                             />
                             <Route
                                 path="voice-mode"

@@ -36,7 +36,7 @@
 /* ===================================
    ШАПКА МОДАЛКИ
    =================================== */
-.settings-header {
+.settings-header, .chat-settings-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -506,6 +506,7 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    margin: 20px 0 0 0;
 }
 
 .reset-btn:hover {
@@ -578,7 +579,8 @@
 
     .settings-header,
     .settings-content,
-    .settings-footer {
+    .settings-footer,
+    .chat-settings-header {
         padding: 16px 20px;
     }
 

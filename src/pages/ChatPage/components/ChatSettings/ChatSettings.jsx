@@ -271,7 +271,7 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings, isAu
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Шапка модального окна */}
-                        <div className="settings-header">
+                        <div className="chat-settings-header">
 
                             <h2 className="settings-title">Настройки</h2>
                             <motion.button
@@ -327,7 +327,7 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings, isAu
                                         transition={{ duration: 0.3 }}
                                     >
                                         {/* Все настройки как были */}
-                                        <div className="settings-section">
+                                        <div className="">
                                             <h3 className="section-title">Общие настройки</h3>
                                             <div className="settings-list">
                                                 {general.map(setting => (
@@ -347,7 +347,7 @@ const ChatSettings = ({ isOpen, onClose, onSave, chatType, currentSettings, isAu
                                                 ))}
 
                                                 {specific.length > 0 && (
-                                                    <div className="settings-section">
+                                                    <div className="">
                                                         <h3 className="section-title">
                                                             Настройки для данного режима
                                                         </h3>

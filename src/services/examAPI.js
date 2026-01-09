@@ -1,5 +1,8 @@
 // src/services/examAPI.js - API для работы с экзаменационной системой
 
+import { getMaxScore as getSubjectMaxScore } from '../config/subjectMapping';
+import {useAuth} from "../hooks/useAuth.js";
+
 /**
  * API функции для работы с экзаменами (ОГЭ/ЕГЭ) ТоварищБота
  */
@@ -162,26 +165,40 @@ export const getExamSettingsById = async (settingsId, userId) => {
 };
 
 /**
- * Обновление настроек экзамена (даты)
+ * Обновление настроек экзамена (даты и предметов)
  * @param {number} settingsId - ID настроек экзамена
- * @param {string} examDate - Новая дата экзамена в формате 'YYYY-MM-DD'
+ * @param {string|null} examDate - Новая дата экзамена в формате 'YYYY-MM-DD' (опционально)
+ * @param {Array<Object>|null} subjects - Обновленный список предметов [{subject_id: string, target_score?: number}] (опционально)
  * @param {string} userId - ID пользователя
  * @returns {Promise<Object>} Результат { success, data, error }
- *
- * @example
- * const result = await updateExamSettings(1, '2025-06-15', 'user123');
  */
-export const updateExamSettings = async (settingsId, examDate, userId) => {
+export const updateExamSettings = async (settingsId, examDate, subjects, userId) => {
     try {
+        // Формируем тело запроса
+        const requestBody = {};
+
+        // Добавляем дату, если она передана
+        if (examDate !== null && examDate !== undefined) {
+            requestBody.exam_date = examDate;
+        }
+
+        // Добавляем предметы, если они переданы
+        if (subjects !== null && subjects !== undefined) {
+            requestBody.subjects = subjects;
+        }
+
+        console.log('📤 Updating exam settings:', {
+            settingsId,
+            requestBody
+        });
+
         const response = await fetch(
             `${API_BASE_URL}/exam/settings/${settingsId}?user_id=${userId}`,
             {
                 method: 'PATCH',
                 headers: await getAuthHeaders(),
                 credentials: 'include',
-                body: JSON.stringify({
-                    exam_date: examDate
-                })
+                body: JSON.stringify(requestBody)
             }
         );
 
@@ -406,6 +423,7 @@ export const getRandomTask = async (
     excludeSolved = true,
     userId
 ) => {
+
     try {
         let url = `${API_BASE_URL}/exam/task?subject_id=${subjectId}&exam_type=${examType}&exclude_solved=${excludeSolved}&user_id=${userId}`;
 
@@ -799,20 +817,7 @@ export const getDifficultyColor = (difficulty) => {
  * @returns {number} Максимальный балл
  */
 export const getMaxScore = (subjectId, examType) => {
-    const maxScores = {
-        'математика': examType === 'ОГЭ' ? 31 : 100,
-        'русский язык': examType === 'ОГЭ' ? 33 : 100,
-        'информатика': examType === 'ОГЭ' ? 19 : 100,
-        'физика': examType === 'ОГЭ' ? 45 : 100,
-        'химия': examType === 'ОГЭ' ? 40 : 100,
-        'биология': examType === 'ОГЭ' ? 48 : 100,
-        'история': examType === 'ОГЭ' ? 37 : 100,
-        'обществознание': examType === 'ОГЭ' ? 37 : 100,
-        'литература': examType === 'ОГЭ' ? 39 : 100,
-        'география': examType === 'ОГЭ' ? 31 : 100,
-        'английский язык': examType === 'ОГЭ' ? 68 : 100
-    };
-    return maxScores[subjectId] || 100;
+    return getSubjectMaxScore(subjectId, examType);
 };
 
 /**
