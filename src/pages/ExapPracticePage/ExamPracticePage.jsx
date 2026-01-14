@@ -17,7 +17,11 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import './ExamPracticePage.css';
 
-const ExamPracticePage = ( user ) => {
+const ExamPracticePage = () => {
+    const { getUserId } = useAuth();
+
+    const [userId, setUserId] = useState(null);
+
     const navigate = useNavigate();
     const { subjectId, examType } = useParams(); // Например: /exam/practice/mathematics/ОГЭ
 
@@ -43,6 +47,21 @@ const ExamPracticePage = ( user ) => {
         loadNextTask();
     }, [subjectId, examType]);
 
+    useEffect(() => {
+        const fetchUserId = async () => {
+            try {
+                const id = await getUserId();
+                setUserId(id);
+                console.log('User ID получен:', id);
+            } catch (err) {
+                console.error('Ошибка получения user_id:', err);
+                setError('Не удалось получить данные пользователя');
+            }
+        };
+
+        fetchUserId();
+    }, [getUserId]);
+
     /**
      * Загрузка следующего задания
      */
@@ -52,13 +71,15 @@ const ExamPracticePage = ( user ) => {
         setShowResult(false);
         setTaskResult(null);
 
+        console.log("loadNextTask" + userId);
+
         try {
             const result = await getRandomTask(
                 subjectId,
                 examType,
                 null, // difficulty - можно передать для фильтрации
                 true, // exclude_solved
-                user.user_id
+                userId
             );
 
             if (result.success && result.data) {
@@ -79,12 +100,13 @@ const ExamPracticePage = ( user ) => {
      */
     const handleSubmitAnswer = async (answerData) => {
         try {
-            console.log(answerData, user.user_id)
+            console.log("handleSubmitAnswer " + userId)
 
             const result = await submitAnswer(
                 answerData.task_id,
                 answerData.user_answer,
                 answerData.time_spent,
+                userId
             );
 
             if (result.success && result.data) {

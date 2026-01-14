@@ -1,263 +1,237 @@
-/* src/pages/ExamTaskPage/ExamTaskPage.css */
-/**
- * Стили для страницы решения одного задания (retry)
- */
+/* Дополнительные стили для ExamTaskPage.css */
+/* Добавьте эти стили в существующий файл ExamTaskPage.css */
 
-/* Основной контейнер страницы */
-.exam-task-page {
-    min-height: 100vh;
-    background: #0d0d0d;
-    padding: 20px;
-}
+/* =====================================================
+   PROGRESS INDICATOR - Индикатор прогресса
+   ===================================================== */
 
-.exam-task-page-container {
-    max-width: 900px;
-    margin: 0 auto;
-}
-
-/* Хедер страницы */
-.exam-task-page-header {
+.progress-indicator {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-/* Кнопка назад */
-.back-button {
-    display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
-    padding: 12px 20px;
-    background: #2a2a2a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    flex: 1;
+    max-width: 300px;
 }
 
-.back-button:hover {
-    background: #333;
-    border-color: rgba(67, 255, 101, 0.3);
-    transform: translateX(-2px);
-}
-
-/* Бейдж повторного решения */
-.retry-badge {
-    padding: 8px 16px;
-    background: rgba(87, 139, 246, 0.1);
-    border: 1px solid rgba(87, 139, 246, 0.3);
-    border-radius: 12px;
-    color: #578BF6;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-/* Контент страницы */
-.exam-task-page-content {
-    margin-bottom: 24px;
-}
-
-/* Дополнительные действия */
-.exam-task-page-actions {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 24px;
-    flex-wrap: wrap;
-}
-
-.retry-task-btn,
-.back-to-history-btn {
-    padding: 14px 28px;
-    border: none;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.retry-task-btn {
-    background: #f59e0b;
-    color: #0d0d0d;
-}
-
-.retry-task-btn:hover {
-    background: #f59e0bdd;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-}
-
-.back-to-history-btn {
-    background: #578BF6;
-    color: #fff;
-}
-
-.back-to-history-btn:hover {
-    background: #4a7ee6;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(87, 139, 246, 0.4);
-}
-
-/* Loading состояние */
-.exam-task-page-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
-    gap: 20px;
-}
-
-.exam-task-page-loading p {
-    color: #fff;
-    font-size: 16px;
-}
-
-/* Error состояние */
-.exam-task-page-error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
-    gap: 16px;
-    text-align: center;
-    padding: 20px;
-}
-
-.exam-task-page-error h3 {
-    color: #fff;
-    font-size: 24px;
-    margin: 0;
-}
-
-.exam-task-page-error p {
+.progress-text {
+    font-size: 13px;
     color: #888;
-    font-size: 16px;
-    margin: 0;
-    max-width: 500px;
+    font-weight: 500;
+    text-align: center;
 }
 
-.error-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-    justify-content: center;
+.progress-bar-container {
+    width: 100%;
+    height: 6px;
+    background-color: #2a2a2a;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
 }
 
-.retry-btn,
-.back-btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #578BF6 0%, #43ff65 100%);
+    border-radius: 3px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
-.retry-btn {
-    background: #43ff65;
-    color: #0d0d0d;
-}
-
-.retry-btn:hover {
-    background: #3ee85c;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(67, 255, 101, 0.4);
-}
-
-.back-btn {
-    background: #2a2a2a;
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.back-btn:hover {
-    background: #333;
-    border-color: rgba(67, 255, 101, 0.3);
-}
-
-/* Оверлей при отправке */
-.submitting-overlay {
-    position: fixed;
+.progress-bar-fill::after {
+    content: '';
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* =====================================================
+   HEADER LAYOUT - Обновленная раскладка хедера
+   ===================================================== */
+
+.exam-task-page-header {
     display: flex;
-    flex-direction: column;
     align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    flex-wrap: wrap;
+}
+
+/* =====================================================
+   ACTION BUTTONS - Кнопки действий
+   ===================================================== */
+
+.exam-task-page-actions {
+    display: flex;
+    gap: 12px;
+    padding: 20px;
+    background-color: #1a1a1a;
+    border-top: 1px solid #2a2a2a;
     justify-content: center;
-    gap: 20px;
-    z-index: 9999;
+    flex-wrap: wrap;
 }
 
-.submitting-overlay p {
+.next-task-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background-color: #2a2a2a;
     color: #fff;
-    font-size: 16px;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.next-task-btn:hover {
+    background-color: #3a3a3a;
+    border-color: #4a4a4a;
+    transform: translateY(-1px);
+}
+
+.next-task-btn:active {
+    transform: translateY(0);
+}
+
+.next-task-btn.primary {
+    background: linear-gradient(135deg, #578BF6 0%, #43ff65 100%);
+    color: #0d0d0d;
+    border: none;
+}
+
+.next-task-btn.primary:hover {
+    background: linear-gradient(135deg, #6a9bff 0%, #5aff7c 100%);
+    box-shadow: 0 4px 12px rgba(67, 255, 101, 0.3);
+}
+
+.retry-task-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background-color: #2a2a2a;
+    color: #fff;
+    border: 1px solid #f59e0b;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.retry-task-btn:hover {
+    background-color: rgba(245, 158, 11, 0.1);
+    border-color: #fbbf24;
+    transform: translateY(-1px);
+}
+
+.retry-task-btn:active {
+    transform: translateY(0);
+}
+
+.back-to-history-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background-color: #2a2a2a;
+    color: #fff;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.back-to-history-btn:hover {
+    background-color: #3a3a3a;
+    border-color: #4a4a4a;
+    transform: translateY(-1px);
+}
+
+.back-to-history-btn:active {
+    transform: translateY(0);
+}
+
+/* =====================================================
+   RETRY BADGE - Бейдж повторного решения
+   ===================================================== */
+
+.retry-badge {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(87, 139, 246, 0.2) 0%, rgba(67, 255, 101, 0.2) 100%);
+    border: 1px solid rgba(67, 255, 101, 0.3);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #43ff65;
     font-weight: 500;
+    white-space: nowrap;
 }
 
-/* Анимация вращения */
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
+/* =====================================================
+   RESPONSIVE - Адаптивность
+   ===================================================== */
 
-.spin {
-    animation: spin 1s linear infinite;
-}
-
-/* Адаптивность */
 @media (max-width: 768px) {
-    .exam-task-page {
-        padding: 12px;
-    }
-
     .exam-task-page-header {
-        flex-direction: column;
-        align-items: stretch;
+        padding: 12px 16px;
     }
 
-    .back-button {
+    .progress-indicator {
+        max-width: 100%;
+        order: 3;
         width: 100%;
-        justify-content: center;
     }
 
     .retry-badge {
-        text-align: center;
+        font-size: 12px;
+        padding: 4px 10px;
     }
 
     .exam-task-page-actions {
-        flex-direction: column;
+        padding: 16px;
+        gap: 10px;
     }
 
+    .next-task-btn,
     .retry-task-btn,
     .back-to-history-btn {
         width: 100%;
+        justify-content: center;
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .progress-text {
+        font-size: 12px;
     }
 
-    .error-actions {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .retry-btn,
-    .back-btn {
-        width: 100%;
+    .progress-bar-container {
+        height: 5px;
     }
 }

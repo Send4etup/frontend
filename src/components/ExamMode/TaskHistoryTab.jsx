@@ -135,7 +135,19 @@ const TaskHistoryTab = ({ userId, examType, onTaskRetry }) => {
      */
     const handleRetry = (task) => {
         if (onTaskRetry) {
-            onTaskRetry(task.task_id, examType);
+            // Получаем массив всех неправильных task_id из текущих данных
+            const incorrectTaskIds = historyData.items
+                .filter(item => !item.is_correct)
+                .map(item => item.task_id);
+
+            // Находим индекс текущего задания в этом массиве
+            const currentIndex = incorrectTaskIds.indexOf(task.task_id);
+
+            // Вызываем onTaskRetry с дополнительными данными
+            onTaskRetry(task.task_id, examType, {
+                errorTaskIds: incorrectTaskIds,
+                currentIndex: currentIndex >= 0 ? currentIndex : 0
+            });
         }
     };
 
