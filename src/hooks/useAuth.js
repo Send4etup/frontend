@@ -252,6 +252,66 @@ export const useAuth = () => {
         return localStorage.getItem('backend_token');
     }
 
+    /**
+     * Получение актуальных данных пользователя из Telegram WebApp
+     * @returns {Object|null} Объект с данными из Telegram WebApp или null
+     */
+    const getTelegramUser = useCallback(() => {
+        try {
+            if (!window.Telegram?.WebApp?.initDataUnsafe?.user) {
+                console.warn('Telegram WebApp данные недоступны');
+                return null;
+            }
+
+            const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+            console.log('Получены актуальные данные из Telegram:', telegramUser);
+
+            return telegramUser;
+
+        } catch (error) {
+            console.error('Ошибка получения данных из Telegram:', error);
+            return null;
+        }
+    }, []);
+
+    /**
+     * Получение актуальных данных пользователя из базы данных через API
+     * @returns {Promise<Object|null>} Объект с данными из БД или null
+     */
+    const getUserId = useCallback(async () => {
+        const initData = getTelegramInitData();
+
+        try {
+
+            const response = await fetch(`${API_BASE_URL}/auth/telegram-secure`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ init_data: initData })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const authResult = await response.json();
+
+            return authResult.user.user_id;
+
+        } catch (error) {
+            console.error('Ошибка авторизации:', error);
+            setError(error.message);
+            setIsAuthenticated(false);
+            return null;
+        } finally {
+            setIsLoading(false);
+            authInProgress.current = false;
+        }
+    }, []);
+
     // Инициализация при монтировании компонента
     useEffect(() => {
         initializeAuth();
@@ -292,6 +352,10 @@ export const useAuth = () => {
 
         // Получение токена бэкенда
         getToken,
+
+        // Получение раздельных данных пользователя
+        getTelegramUser,
+        getUserId,
 
         // Вспомогательные геттеры
         userDisplayName: user?.db?.first_name || user?.telegram?.first_name || user?.db?.username || 'Пользователь',

@@ -501,7 +501,7 @@ export const useExamLogic = ({ examType, user, config }) => {
     /**
      * Обработчик повторного решения задания
      */
-    const handleTaskRetry = async (taskId) => {
+    const handleTaskRetry = async (taskId, examType, additionalData = {}) => {
         try {
             // Получаем задание для повторного решения
             const response = await getTaskForRetry(taskId, user.user_id);
@@ -513,8 +513,10 @@ export const useExamLogic = ({ examType, user, config }) => {
             // Перенаправляем на страницу решения задания
             navigate(`/exam/task/${taskId}`, {
                 state: {
-                    task: response.data,
-                    retry: true
+                    retry: true,
+                    examType: examType,
+                    errorTaskIds: additionalData.errorTaskIds || [taskId],
+                    currentIndex: additionalData.currentIndex || 0
                 }
             });
         } catch (error) {

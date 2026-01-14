@@ -322,21 +322,25 @@ const ExamTask = ({
                         className="submit-answer-btn"
                         onClick={handleSubmit}
                         disabled={!isAnswerComplete()}
-                        whileHover={isAnswerComplete() ? { scale: 1.02 } : {}}
-                        whileTap={isAnswerComplete() ? { scale: 0.98 } : {}}
+                        whileHover={isAnswerComplete() ? {scale: 1.02} : {}}
+                        whileTap={isAnswerComplete() ? {scale: 0.98} : {}}
                     >
                         Проверить ответ
                     </motion.button>
                 ) : (
-                    <motion.button
-                        className="next-task-btn"
-                        onClick={onNext}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                    >
-                        Следующее задание →
-                    </motion.button>
-                )}
+                    <>
+                        {onNext &&
+                            <motion.button
+                                className="next-task-btn"
+                                onClick={onNext}
+                                whileHover={{scale: 1.02}}
+                                whileTap={{scale: 0.98}}
+                            >
+                                Следующее задание →
+                            </motion.button>
+                        }
+                    </>
+                    )}
             </div>
         </motion.div>
     );
