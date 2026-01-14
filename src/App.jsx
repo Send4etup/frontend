@@ -161,15 +161,15 @@ function App() {
         setServerStatus(prev => ({ ...prev, isChecking: true }));
 
         try {
-            const response = await fetch('http://127.0.0.1:3213/', {
-                method: 'GET',
-                timeout: 5000
-            });
-
-            // const response = await fetch('https://back.grigpe3j.beget.tech', {
+            // const response = await fetch('http://127.0.0.1:3213/', {
             //     method: 'GET',
             //     timeout: 5000
             // });
+
+            const response = await fetch('https://back.grigpe3j.beget.tech', {
+                method: 'GET',
+                timeout: 5000
+            });
 
             const isOnline = response.ok;
             setServerStatus({
